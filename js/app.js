@@ -278,7 +278,13 @@ function setupEventListeners() {
   // Tombol Unduh & Cetak
   document.getElementById("btn-export-excel")?.addEventListener("click", exportToExcel);
   document.getElementById("btn-export-csv")?.addEventListener("click", exportToCSV);
-  document.getElementById("btn-print-presensi")?.addEventListener("click", () => window.print());
+  document.getElementById("btn-print-presensi")?.addEventListener("click", openRekapCetakModal);
+
+  // Dropdown filter perubahan pada Modal Rekap Laporan Bulanan
+  document.getElementById("rekap-select-bulan")?.addEventListener("change", renderRekapLaporanBulanan);
+  document.getElementById("rekap-select-tahun")?.addEventListener("change", renderRekapLaporanBulanan);
+  document.getElementById("rekap-select-dosen")?.addEventListener("change", renderRekapLaporanBulanan);
+  document.getElementById("rekap-select-format")?.addEventListener("change", renderRekapLaporanBulanan);
 
   // Master Data Buttons
   document.getElementById("btn-tambah-dosen")?.addEventListener("click", openAddDosenModal);
@@ -974,6 +980,435 @@ function exportToCSV() {
     timer: 2000,
     showConfirmButton: false
   });
+}
+
+// ================= REKAPITULASI LAPORAN MENGAJAR DOSEN (1 BULAN) =================
+const NAMA_BULAN = [
+  "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+function openRekapCetakModal() {
+  const modal = document.getElementById("modal-rekap-laporan");
+  if (!modal) return;
+
+  const yearSelect = document.getElementById("rekap-select-tahun");
+  const monthSelect = document.getElementById("rekap-select-bulan");
+  const dosenSelect = document.getElementById("rekap-select-dosen");
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+
+  // Ambil list tahun dari data presensi
+  const existingYears = new Set();
+  existingYears.add(currentYear);
+  AppState.presensiList.forEach(p => {
+    if (p.tanggal) {
+      const yr = parseInt(p.tanggal.split('-')[0], 10);
+      if (!isNaN(yr)) existingYears.add(yr);
+    }
+  });
+
+  const sortedYears = Array.from(existingYears).sort((a, b) => b - a);
+  if (yearSelect) {
+    yearSelect.innerHTML = sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+    yearSelect.value = currentYear;
+  }
+
+  if (monthSelect) {
+    monthSelect.value = currentMonth;
+  }
+
+  // Populate dropdown filter dosen
+  if (dosenSelect) {
+    dosenSelect.innerHTML = '<option value="">Semua Dosen (Seluruhnya)</option>';
+    AppState.dosenList.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.nama;
+      opt.textContent = `${d.nama} ${d.nip ? '(' + d.nip + ')' : ''}`;
+      dosenSelect.appendChild(opt);
+    });
+  }
+
+  // Render laporan bulanan
+  renderRekapLaporanBulanan();
+
+  modal.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeRekapModal() {
+  const modal = document.getElementById("modal-rekap-laporan");
+  if (modal) {
+    modal.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+}
+
+function renderRekapLaporanBulanan() {
+  const monthSelect = document.getElementById("rekap-select-bulan");
+  const yearSelect = document.getElementById("rekap-select-tahun");
+  const dosenSelect = document.getElementById("rekap-select-dosen");
+  const formatSelect = document.getElementById("rekap-select-format");
+  const container = document.getElementById("printable-paper-sheet");
+  if (!container) return;
+
+  const bulan = parseInt(monthSelect ? monthSelect.value : 9, 10);
+  const tahun = parseInt(yearSelect ? yearSelect.value : new Date().getFullYear(), 10);
+  const filterDosen = dosenSelect ? dosenSelect.value.trim() : "";
+  const formatMode = formatSelect ? formatSelect.value : "lengkap";
+
+  const namaBulan = NAMA_BULAN[bulan] || `Bulan ke-${bulan}`;
+  const prefixBulan = `${tahun}-${String(bulan).padStart(2, '0')}`;
+
+  // Filter presensi yang berada pada bulan & tahun tersebut
+  let recordsBulan = AppState.presensiList.filter(p => p.tanggal && p.tanggal.startsWith(prefixBulan));
+
+  if (filterDosen) {
+    recordsBulan = recordsBulan.filter(p => p.dosenNama && p.dosenNama.trim().toLowerCase() === filterDosen.toLowerCase());
+  }
+
+  // Urutkan berdasarkan tanggal menaik lalu jam
+  recordsBulan.sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
+
+  // Hitung Agregasi Rekap per Dosen
+  // Map key: namaDosen + '___' + matkulNama + '___' + kelas
+  const dosenAgregat = {};
+  recordsBulan.forEach(r => {
+    const key = `${r.dosenNama}___${r.matkulNama}___${r.kelas}`;
+    if (!dosenAgregat[key]) {
+      const masterDsn = AppState.dosenList.find(d => d.nama === r.dosenNama);
+      dosenAgregat[key] = {
+        dosenNama: r.dosenNama,
+        nip: masterDsn ? masterDsn.nip : '-',
+        status: masterDsn ? masterDsn.status : 'Tetap',
+        matkulNama: r.matkulNama,
+        kelas: r.kelas,
+        kelasLabel: r.kelasLabel || KELAS_MAP[r.kelas] || r.kelas,
+        totalPertemuan: 0,
+        luringCount: 0,
+        daringCount: 0,
+        totalMhs: 0,
+        pertemuanList: []
+      };
+    }
+    dosenAgregat[key].totalPertemuan += 1;
+    if (r.pelaksanaan === "Luring") dosenAgregat[key].luringCount += 1;
+    else dosenAgregat[key].daringCount += 1;
+    dosenAgregat[key].totalMhs += (Number(r.jumlahMhs) || 0);
+    if (r.pertemuan) dosenAgregat[key].pertemuanList.push(r.pertemuan);
+  });
+
+  const agregatList = Object.values(dosenAgregat);
+  const totalSesi = recordsBulan.length;
+  const totalDosenAktif = new Set(recordsBulan.map(r => r.dosenNama)).size;
+  const totalMhsSemua = recordsBulan.reduce((acc, c) => acc + (Number(c.jumlahMhs) || 0), 0);
+  const totalLuring = recordsBulan.filter(r => r.pelaksanaan === "Luring").length;
+  const totalDaring = recordsBulan.filter(r => r.pelaksanaan === "Daring").length;
+
+  const now = new Date();
+  const tglCetak = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Render HTML ke sheet
+  let html = `
+    <!-- KOP SURAT / HEADER RESMI -->
+    <div class="kop-surat">
+      <div class="kop-logo">
+        <i class="fa-solid fa-graduation-cap"></i>
+      </div>
+      <div class="kop-text">
+        <div class="kop-instansi">SISTEM INFORMASI AKADEMIK PERGURUAN TINGGI</div>
+        <div class="kop-subinstansi">BAGIAN ADMINISTRASI AKADEMIK &amp; KEMAHASISWAAN (BAAK)</div>
+        <div class="kop-alamat">Laporan Akuntabilitas Kinerja Pengajaran Dosen Terverifikasi Sistem</div>
+      </div>
+    </div>
+
+    <!-- JUDUL LAPORAN -->
+    <div class="laporan-title-block">
+      <div class="laporan-title">REKAPITULASI LAPORAN PRESENSI MENGAJAR DOSEN</div>
+      <div class="laporan-periode"><i class="fa-regular fa-calendar"></i> Periode: Bulan ${namaBulan.toUpperCase()} ${tahun}</div>
+      ${filterDosen ? `<div style="margin-top:0.4rem; font-size:0.85rem; font-weight:700; color:#334155;">Dosen: ${escapeHtml(filterDosen)}</div>` : ''}
+    </div>
+
+    <!-- RINGKASAN INDIKATOR -->
+    <div class="rekap-summary-boxes">
+      <div class="rekap-box">
+        <div class="rekap-box-val">${totalDosenAktif}</div>
+        <div class="rekap-box-lbl">Dosen Mengajar</div>
+      </div>
+      <div class="rekap-box">
+        <div class="rekap-box-val">${totalSesi}</div>
+        <div class="rekap-box-lbl">Total Pertemuan / Sesi</div>
+      </div>
+      <div class="rekap-box">
+        <div class="rekap-box-val">${totalLuring} / ${totalDaring}</div>
+        <div class="rekap-box-lbl">Sesi Luring / Daring</div>
+      </div>
+      <div class="rekap-box">
+        <div class="rekap-box-val">${totalMhsSemua}</div>
+        <div class="rekap-box-lbl">Akumulasi Mahasiswa</div>
+      </div>
+    </div>
+  `;
+
+  if (recordsBulan.length === 0) {
+    html += `
+      <div style="text-align:center; padding:3rem 1rem; border:1px dashed #cbd5e1; border-radius:8px; background:#f8fafc; margin-bottom:2rem;">
+        <i class="fa-solid fa-calendar-xmark" style="font-size:2.5rem; color:#94a3b8; margin-bottom:0.75rem;"></i>
+        <div style="font-weight:700; font-size:1rem; color:#1e293b;">Tidak Ada Data Presensi pada Bulan ${namaBulan} ${tahun}</div>
+        <div style="font-size:0.82rem; color:#64748b; margin-top:0.35rem;">Belum ada catatan presensi mengajar yang masuk pada periode bulan ini. Silakan pilih bulan lain di bagian atas.</div>
+      </div>
+    `;
+  } else {
+    // TABEL 1: REKAPITULASI DOSEN
+    if (formatMode === "lengkap" || formatMode === "rekap") {
+      html += `
+        <div class="laporan-section-title">
+          <i class="fa-solid fa-table-list" style="color:#2563eb;"></i>
+          <strong>I. TABEL REKAPITULASI DOSEN MENGAJAR (BULAN ${namaBulan.toUpperCase()} ${tahun})</strong>
+        </div>
+        <table class="laporan-table">
+          <thead>
+            <tr>
+              <th style="text-align:center; width:35px;">No</th>
+              <th>Nama Dosen &amp; NIDN</th>
+              <th>Mata Kuliah Diampu</th>
+              <th style="text-align:center;">Kelas</th>
+              <th style="text-align:center; width:90px;">Jml Pertemuan</th>
+              <th style="text-align:center; width:90px;">Pelaksanaan</th>
+              <th style="text-align:center; width:80px;">Total Mhs</th>
+              <th style="text-align:center; width:90px;">Pertemuan Ke</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${agregatList.map((item, idx) => `
+              <tr>
+                <td style="text-align:center; font-weight:600;">${idx + 1}</td>
+                <td>
+                  <strong>${escapeHtml(item.dosenNama)}</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">NIDN: ${escapeHtml(item.nip || '-')} | ${item.status}</div>
+                </td>
+                <td>${escapeHtml(item.matkulNama)}</td>
+                <td style="text-align:center;">
+                  <strong>${item.kelas}</strong>
+                  <div style="font-size:0.7rem; color:#64748b;">${escapeHtml(item.kelasLabel)}</div>
+                </td>
+                <td style="text-align:center; font-weight:700; color:#1e40af;">
+                  ${item.totalPertemuan}x
+                </td>
+                <td style="text-align:center; font-size:0.75rem;">
+                  ${item.luringCount > 0 ? `<span>${item.luringCount} Luring</span>` : ''}
+                  ${item.luringCount > 0 && item.daringCount > 0 ? '<br>' : ''}
+                  ${item.daringCount > 0 ? `<span>${item.daringCount} Daring</span>` : ''}
+                </td>
+                <td style="text-align:center; font-weight:600;">${item.totalMhs}</td>
+                <td style="text-align:center; font-size:0.75rem; color:#475569;">
+                  Ke: ${item.pertemuanList.sort((a, b) => a - b).join(', ')}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:#f1f5f9; font-weight:700;">
+              <td colspan="4" style="text-align:right;">TOTAL KESELURUHAN PERIODE ${namaBulan.toUpperCase()}:</td>
+              <td style="text-align:center; color:#1e40af; font-size:0.9rem;">${totalSesi} Sesi</td>
+              <td style="text-align:center; font-size:0.75rem;">${totalLuring} L / ${totalDaring} D</td>
+              <td style="text-align:center;">${totalMhsSemua} Mhs</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    }
+
+    // TABEL 2: RINCIAN LOG SESI MENGAJAR
+    if (formatMode === "lengkap" || formatMode === "rincian") {
+      html += `
+        <div class="laporan-section-title" style="margin-top: ${formatMode === 'lengkap' ? '2rem' : '0'};">
+          <i class="fa-solid fa-list-check" style="color:#2563eb;"></i>
+          <strong>${formatMode === 'lengkap' ? 'II. ' : ''}RINCIAN CATATAN PRESENSI MENGAJAR SELURUHNYA</strong>
+        </div>
+        <table class="laporan-table">
+          <thead>
+            <tr>
+              <th style="text-align:center; width:30px;">No</th>
+              <th style="width:110px;">Tanggal &amp; Jam</th>
+              <th>Nama Dosen</th>
+              <th>Mata Kuliah</th>
+              <th style="text-align:center; width:50px;">Kelas</th>
+              <th style="text-align:center; width:45px;">Ke</th>
+              <th>Pokok Bahasan / Materi</th>
+              <th style="text-align:center; width:45px;">Mhs</th>
+              <th style="text-align:center; width:65px;">Metode</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recordsBulan.map((r, idx) => `
+              <tr>
+                <td style="text-align:center; font-weight:600;">${idx + 1}</td>
+                <td>
+                  <div style="font-weight:600;">${formatTanggalIndo(r.tanggal)}</div>
+                  <div style="font-size:0.7rem; color:#64748b;">${escapeHtml(r.jam)}</div>
+                </td>
+                <td><strong>${escapeHtml(r.dosenNama)}</strong></td>
+                <td>${escapeHtml(r.matkulNama)}</td>
+                <td style="text-align:center;"><strong>${r.kelas}</strong></td>
+                <td style="text-align:center; font-weight:700;">${r.pertemuan}</td>
+                <td style="font-size:0.78rem;">${escapeHtml(r.materi)}</td>
+                <td style="text-align:center; font-weight:600;">${r.jumlahMhs}</td>
+                <td style="text-align:center; font-size:0.75rem;">
+                  <span style="font-weight:600; color:${r.pelaksanaan === 'Luring' ? '#047857' : '#2563eb'}">${r.pelaksanaan}</span>
+                </td>
+                <td style="font-size:0.72rem; color:#475569;">${escapeHtml(r.keterangan || '-')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  // LEMBAR PENGESAHAN / TANDA TANGAN RESMI
+  html += `
+    <div class="tanda-tangan-block">
+      <div class="ttd-box">
+        <div>Mengetahui,</div>
+        <div style="font-weight:700; margin-top:0.2rem;">Ketua Program Studi</div>
+        <div class="ttd-line">( .................................................... )</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">NIDN. .........................................</div>
+      </div>
+
+      <div class="ttd-box">
+        <div>Dicetak pada: ${tglCetak}</div>
+        <div style="font-weight:700; margin-top:0.2rem;">Bagian Administrasi Akademik</div>
+        <div class="ttd-line">( ${escapeHtml(AppState.currentUser?.name || 'Administrator Akademik')} )</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">SIAKAD Presensi Mengajar Dosen</div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function printLaporanBulanan() {
+  window.print();
+}
+
+// Ekspor Rekap Bulanan ke Excel (.xlsx) dengan SheetJS
+function exportRekapExcelBulanan() {
+  const monthSelect = document.getElementById("rekap-select-bulan");
+  const yearSelect = document.getElementById("rekap-select-tahun");
+  const dosenSelect = document.getElementById("rekap-select-dosen");
+
+  const bulan = parseInt(monthSelect ? monthSelect.value : 9, 10);
+  const tahun = parseInt(yearSelect ? yearSelect.value : new Date().getFullYear(), 10);
+  const filterDosen = dosenSelect ? dosenSelect.value.trim() : "";
+  const namaBulan = NAMA_BULAN[bulan] || `Bulan_${bulan}`;
+  const prefixBulan = `${tahun}-${String(bulan).padStart(2, '0')}`;
+
+  let records = AppState.presensiList.filter(p => p.tanggal && p.tanggal.startsWith(prefixBulan));
+  if (filterDosen) {
+    records = records.filter(p => p.dosenNama && p.dosenNama.trim().toLowerCase() === filterDosen.toLowerCase());
+  }
+
+  if (records.length === 0) {
+    Swal.fire({ icon: 'info', title: 'Data Kosong', text: `Tidak ada data presensi pada bulan ${namaBulan} ${tahun} untuk diekspor.` });
+    return;
+  }
+
+  records.sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
+
+  try {
+    const workbook = XLSX.utils.book_new();
+
+    // 1. Sheet Rekap Dosen
+    const dosenAgregat = {};
+    records.forEach(r => {
+      const key = `${r.dosenNama}___${r.matkulNama}___${r.kelas}`;
+      if (!dosenAgregat[key]) {
+        const masterDsn = AppState.dosenList.find(d => d.nama === r.dosenNama);
+        dosenAgregat[key] = {
+          "Nama Dosen": r.dosenNama,
+          "NIDN": masterDsn ? masterDsn.nip : "-",
+          "Mata Kuliah": r.matkulNama,
+          "Kelas": r.kelas,
+          "Keterangan Kelas": r.kelasLabel || KELAS_MAP[r.kelas] || r.kelas,
+          "Total Pertemuan (Bulan Ini)": 0,
+          "Luring": 0,
+          "Daring": 0,
+          "Total Mahasiswa Hadir": 0,
+          "Daftar Pertemuan Ke": []
+        };
+      }
+      dosenAgregat[key]["Total Pertemuan (Bulan Ini)"] += 1;
+      if (r.pelaksanaan === "Luring") dosenAgregat[key]["Luring"] += 1;
+      else dosenAgregat[key]["Daring"] += 1;
+      dosenAgregat[key]["Total Mahasiswa Hadir"] += (Number(r.jumlahMhs) || 0);
+      if (r.pertemuan) dosenAgregat[key]["Daftar Pertemuan Ke"].push(r.pertemuan);
+    });
+
+    const sheetRekapData = Object.values(dosenAgregat).map((item, idx) => ({
+      "No": idx + 1,
+      "Nama Dosen": item["Nama Dosen"],
+      "NIDN": item["NIDN"],
+      "Mata Kuliah": item["Mata Kuliah"],
+      "Kelas": item["Kelas"],
+      "Keterangan Kelas": item["Keterangan Kelas"],
+      "Total Pertemuan": item["Total Pertemuan (Bulan Ini)"],
+      "Luring": item["Luring"],
+      "Daring": item["Daring"],
+      "Total Mahasiswa": item["Total Mahasiswa Hadir"],
+      "Pertemuan Ke": item["Daftar Pertemuan Ke"].sort((a, b) => a - b).join(', ')
+    }));
+
+    const wsRekap = XLSX.utils.json_to_sheet(sheetRekapData);
+    XLSX.utils.book_append_sheet(workbook, wsRekap, "Rekap Bulanan Dosen");
+
+    // 2. Sheet Rincian Sesi Lengkap
+    const sheetRincianData = records.map((r, idx) => ({
+      "No": idx + 1,
+      "Tanggal": r.tanggal,
+      "Jam Perkuliahan": r.jam,
+      "Nama Dosen": r.dosenNama,
+      "Mata Kuliah": r.matkulNama,
+      "Kode Kelas": r.kelas,
+      "Nama Kelas": r.kelasLabel || KELAS_MAP[r.kelas] || r.kelas,
+      "Pertemuan Ke": r.pertemuan,
+      "Metode Pelaksanaan": r.pelaksanaan,
+      "Jumlah Mahasiswa": r.jumlahMhs,
+      "Materi Perkuliahan": r.materi,
+      "Keterangan": r.keterangan || "-"
+    }));
+
+    const wsRincian = XLSX.utils.json_to_sheet(sheetRincianData);
+    XLSX.utils.book_append_sheet(workbook, wsRincian, "Rincian Log Mengajar");
+
+    const filename = `Rekap_Presensi_Dosen_${namaBulan}_${tahun}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Rekap Bulanan Berhasil Diunduh!',
+      text: `File tersimpan dengan nama: ${filename}`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+  } catch (e) {
+    console.error("Gagal export rekap bulanan:", e);
+    Swal.fire({ icon: 'error', title: 'Gagal Mengunduh', text: 'Terjadi kendala saat mengekspor ke Excel.' });
+  }
+}
+
+// Helper format tanggal Indonesia (YYYY-MM-DD -> DD Bulan YYYY)
+function formatTanggalIndo(tglStr) {
+  if (!tglStr) return "-";
+  const parts = tglStr.split('-');
+  if (parts.length !== 3) return tglStr;
+  const blnIndex = parseInt(parts[1], 10);
+  const blnNama = NAMA_BULAN[blnIndex] || parts[1];
+  return `${parts[2]} ${blnNama} ${parts[0]}`;
 }
 
 // ================= KELOLA MASTER DATA DOSEN =================
