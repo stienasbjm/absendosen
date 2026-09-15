@@ -35,39 +35,47 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateConnectionBadge();
 });
 
-// Realtime jam & tanggal pada banner
+// Realtime jam & tanggal pada banner login & form
 function initRealtimeClock() {
-  const clockEl = document.getElementById("header-current-time");
-  if (!clockEl) return;
   const updateTime = () => {
     const now = new Date();
     const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-    clockEl.textContent = now.toLocaleDateString('id-ID', options);
+    const str = now.toLocaleDateString('id-ID', options);
+    const loginClock = document.getElementById("login-current-time");
+    if (loginClock) loginClock.textContent = str;
+    const formClock = document.getElementById("form-current-time");
+    if (formClock) formClock.textContent = str;
   };
   updateTime();
   setInterval(updateTime, 1000 * 30);
 }
 
-// Cek sesi login (Admin atau Dosen)
+// Cek sesi login (Admin atau Dosen) - Default membuka halaman login jika belum masuk
 function checkAuthSession() {
   const session = sessionStorage.getItem("presensi_user_session") || sessionStorage.getItem("presensi_admin_session");
   if (session) {
     try {
       AppState.currentUser = JSON.parse(session);
       updateAuthUI();
+      if (AppState.currentUser.role === "admin") {
+        showView("view-admin-dashboard");
+      } else if (AppState.currentUser.role === "dosen") {
+        showView("view-form-absen");
+      }
     } catch (e) {
       AppState.currentUser = null;
       updateAuthUI();
+      showView("view-login");
     }
   } else {
     AppState.currentUser = null;
     updateAuthUI();
+    showView("view-login");
   }
 }
 
 // Update tampilan antarmuka sesuai role login
 function updateAuthUI() {
-  const btnLogin = document.getElementById("btn-nav-login");
   const promptBanner = document.getElementById("dosen-auth-prompt");
   const loggedBanner = document.getElementById("dosen-logged-banner");
   const formDosen = document.getElementById("form-dosen");
@@ -75,10 +83,6 @@ function updateAuthUI() {
 
   if (AppState.currentUser) {
     if (AppState.currentUser.role === "admin") {
-      if (btnLogin) {
-        btnLogin.innerHTML = `<i class="fa-solid fa-gauge-high"></i> Dashboard Admin`;
-        btnLogin.className = "btn btn-primary btn-sm";
-      }
       if (promptBanner) promptBanner.style.display = "none";
       if (loggedBanner) {
         loggedBanner.style.display = "flex";
@@ -91,11 +95,6 @@ function updateAuthUI() {
       }
       if (lockedNotice) lockedNotice.style.display = "none";
     } else if (AppState.currentUser.role === "dosen") {
-      if (btnLogin) {
-        const shortName = AppState.currentUser.nama ? AppState.currentUser.nama.split(',')[0] : 'Dosen';
-        btnLogin.innerHTML = `<i class="fa-solid fa-user-check"></i> ${escapeHtml(shortName)}`;
-        btnLogin.className = "btn btn-success btn-sm";
-      }
       if (promptBanner) promptBanner.style.display = "none";
       if (loggedBanner) {
         loggedBanner.style.display = "flex";
@@ -110,10 +109,6 @@ function updateAuthUI() {
       if (lockedNotice) lockedNotice.style.display = "flex";
     }
   } else {
-    if (btnLogin) {
-      btnLogin.innerHTML = `<i class="fa-solid fa-lock"></i> Login Portal`;
-      btnLogin.className = "btn btn-outline-primary btn-sm";
-    }
     if (promptBanner) promptBanner.style.display = "flex";
     if (loggedBanner) loggedBanner.style.display = "none";
     if (formDosen) {
@@ -129,15 +124,22 @@ function updateAuthUI() {
 
 // Update status koneksi Firebase / Local
 function updateConnectionBadge() {
-  const badge = document.getElementById("firebase-status-badge");
-  if (!badge) return;
+  const badge = document.getElementById("form-firebase-status-badge");
+  const text = document.getElementById("form-firebase-status-text");
+  if (!badge || !text) return;
 
   if (window.dbService && window.dbService.isFirebaseReady) {
     badge.className = "badge-status connected";
-    badge.innerHTML = `<span class="status-dot"></span> <span>Cloud Firebase Aktif</span>`;
+    badge.style.background = "rgba(16, 185, 129, 0.25)";
+    badge.style.color = "#ffffff";
+    badge.style.borderColor = "rgba(167, 243, 208, 0.6)";
+    text.textContent = "Cloud Firebase Aktif";
   } else {
     badge.className = "badge-status local";
-    badge.innerHTML = `<span class="status-dot"></span> <span>Mode Siap Pakai (Local)</span>`;
+    badge.style.background = "rgba(255, 255, 255, 0.2)";
+    badge.style.color = "#ffffff";
+    badge.style.borderColor = "rgba(255, 255, 255, 0.4)";
+    text.textContent = "Mode Siap Pakai (Local)";
   }
 }
 
@@ -672,7 +674,7 @@ function handleLogout() {
       sessionStorage.removeItem("presensi_user_session");
       sessionStorage.removeItem("presensi_admin_session");
       updateAuthUI();
-      showView("view-form-absen");
+      showView("view-login");
       Swal.fire({
         toast: true,
         position: 'top-end',

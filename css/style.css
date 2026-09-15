@@ -608,7 +608,7 @@ textarea.form-control {
 /* ================= Admin Layout with Sidebar ================= */
 .admin-layout {
   display: flex;
-  min-height: calc(100vh - 65px);
+  min-height: 100vh;
   background: #f1f5f9;
 }
 
@@ -621,8 +621,8 @@ textarea.form-control {
   flex-shrink: 0;
   transition: var(--transition);
   position: sticky;
-  top: 65px;
-  height: calc(100vh - 65px);
+  top: 0;
+  height: 100vh;
   overflow-y: auto;
   z-index: 30;
 }
@@ -985,8 +985,8 @@ textarea.form-control {
   .admin-sidebar {
     position: fixed;
     left: -280px;
-    top: 60px;
-    height: calc(100vh - 60px);
+    top: 0;
+    height: 100vh;
     box-shadow: var(--shadow-lg);
   }
 
