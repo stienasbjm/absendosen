@@ -310,13 +310,6 @@
       <!-- Sidebar Menu Khusus Admin -->
       <aside class="admin-sidebar">
         <div class="sidebar-header">
-          <div style="display:flex; align-items:center; gap:0.65rem; padding-bottom:0.75rem; margin-bottom:0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">
-            <img src="img/logo-stienas.png" alt="Logo STIE Nas" style="width:36px; height:auto; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
-            <div>
-              <div style="font-weight:800; font-size:0.85rem; color:#fff; letter-spacing:0.03em;">STIE NASIONAL</div>
-              <div style="font-size:0.7rem; color:#94a3b8;">Banjarmasin</div>
-            </div>
-          </div>
           <div class="sidebar-user">
             <div class="sidebar-avatar" id="admin-user-avatar">
               <i class="fa-solid fa-user-shield"></i>
@@ -354,6 +347,10 @@
           </a>
 
           <div id="sidebar-section-pengaturan" class="nav-section-title">Pengaturan Sistem</div>
+          <a href="#" id="sidebar-link-users" class="sidebar-link" data-tab="tab-users">
+            <i class="fa-solid fa-user-shield"></i>
+            <span>Kelola User Admin &amp; BAA</span>
+          </a>
           <a href="#" id="sidebar-link-firebase" class="sidebar-link" data-tab="tab-firebase">
             <i class="fa-solid fa-fire"></i>
             <span>Konfigurasi Firebase</span>
@@ -721,6 +718,39 @@
           </div>
         </div>
 
+        <!-- TAB 6: KELOLA USER ADMIN & BAGIAN AKADEMIK (BAA) - KHUSUS SUPER ADMIN -->
+        <div id="tab-users" class="admin-tab">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Kelola User Admin &amp; Bagian Akademik (BAA)</h2>
+              <p class="page-subtitle">Hak akses khusus Super Admin: Tambah, edit, dan kelola akun pengguna sistem</p>
+            </div>
+            <button id="btn-tambah-user" class="btn btn-primary btn-sm">
+              <i class="fa-solid fa-user-plus"></i> Tambah User Baru
+            </button>
+          </div>
+
+          <div class="card-table-wrapper">
+            <div class="table-responsive">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th style="text-align:center; width:50px;">No</th>
+                    <th>Nama Lengkap Pengguna</th>
+                    <th>Username &amp; Email</th>
+                    <th>Role / Hak Akses</th>
+                    <th>Kata Sandi</th>
+                    <th style="text-align:center; width:160px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="table-users-body">
+                  <!-- Dimuat via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- Admin Dashboard Footer -->
         <footer style="margin-top:2.5rem; padding:1.25rem 0; border-top:1px solid var(--border); text-align:center; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
           <div style="font-weight:600; color:#334155;">&copy; 2026 STIE Nasional Banjarmasin. Hak Cipta Dilindungi.</div>
@@ -830,7 +860,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="js/firebase-config.js?v=20260916i"></script>
-  <script src="js/app.js?v=20260916i"></script>
+  <script src="js/firebase-config.js?v=20260917a"></script>
+  <script src="js/app.js?v=20260917a"></script>
 </body>
 </html>

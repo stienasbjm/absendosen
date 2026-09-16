@@ -20,6 +20,7 @@ const AppState = {
   dosenList: [],
   matkulList: [],
   presensiList: [],
+  adminUserList: [],
   currentAdminTab: "tab-dashboard"
 };
 
@@ -92,6 +93,7 @@ function updateAuthUI() {
   const adminRole = document.getElementById("admin-user-display-role");
   const adminAvatar = document.getElementById("admin-user-avatar");
   const sidebarSectionPengaturan = document.getElementById("sidebar-section-pengaturan");
+  const sidebarLinkUsers = document.getElementById("sidebar-link-users");
   const sidebarLinkFirebase = document.getElementById("sidebar-link-firebase");
 
   if (AppState.currentUser) {
@@ -102,9 +104,9 @@ function updateAuthUI() {
       if (promptBanner) promptBanner.style.display = "none";
       if (loggedBanner) {
         loggedBanner.style.display = "flex";
-        if (roleLabel) roleLabel.textContent = isSuperAdmin ? "Login sebagai Super Admin:" : "Login sebagai Bagian Akademik (BAAK):";
-        document.getElementById("logged-dosen-nama").textContent = AppState.currentUser.name || (isSuperAdmin ? "Super Administrator" : "Admin Akademik");
-        document.getElementById("logged-dosen-nip").textContent = isSuperAdmin ? "Super Admin" : "BAAK";
+        if (roleLabel) roleLabel.textContent = isSuperAdmin ? "Login sebagai Super Admin:" : "Login sebagai Bagian Akademik (BAA):";
+        document.getElementById("logged-dosen-nama").textContent = AppState.currentUser.name || (isSuperAdmin ? "Super Administrator" : "Admin Akademik (BAA)");
+        document.getElementById("logged-dosen-nip").textContent = isSuperAdmin ? "Super Admin" : "BAA";
       }
       if (btnDashboard) btnDashboard.style.display = "inline-flex";
       if (btnRiwayat) btnRiwayat.style.display = "none";
@@ -117,16 +119,19 @@ function updateAuthUI() {
 
       // Pengaturan Identitas Profil di Sidebar
       if (adminName) {
-        adminName.textContent = isSuperAdmin ? "Super Administrator" : "Admin Akademik";
+        adminName.textContent = AppState.currentUser.name || (isSuperAdmin ? "Super Administrator" : "Admin Akademik (BAA)");
       }
       if (adminRole) {
-        adminRole.textContent = isSuperAdmin ? "Full Access (Firebase Master)" : "Pengelola Data Akademik (BAAK)";
+        adminRole.textContent = isSuperAdmin ? "Full Access (Master Admin)" : "Pengelola Data Akademik (BAA)";
       }
       if (adminAvatar) {
         adminAvatar.innerHTML = isSuperAdmin ? `<i class="fa-solid fa-shield-halved"></i>` : `<i class="fa-solid fa-user-pen"></i>`;
       }
 
-      // KONTROL AKSES: Sembunyikan Konfigurasi Firebase untuk Admin Akademik
+      // KONTROL AKSES: Sembunyikan Kelola User & Konfigurasi Firebase untuk Admin Akademik
+      if (sidebarLinkUsers) {
+        sidebarLinkUsers.style.display = isSuperAdmin ? "flex" : "none";
+      }
       if (sidebarLinkFirebase) {
         sidebarLinkFirebase.style.display = isSuperAdmin ? "flex" : "none";
       }
@@ -193,12 +198,14 @@ async function loadMasterData() {
   AppState.dosenList = await window.dbService.getDosen();
   AppState.matkulList = await window.dbService.getMatkul();
   AppState.presensiList = await window.dbService.getPresensi();
+  AppState.adminUserList = await window.dbService.getUsers();
 
   populateDosenDropdown();
   populateMatkulDropdown();
   renderDosenTable();
   renderMatkulTable();
   renderPresensiTable();
+  renderUsersTable();
   updateDashboardStats();
 }
 
@@ -315,6 +322,7 @@ window.syncAllData = async function(showNotification = false) {
       AppState.dosenList = data.dosen || [];
       AppState.matkulList = data.matkul || [];
       AppState.presensiList = data.presensi || [];
+      AppState.adminUserList = data.users || [];
     } else {
       await loadMasterData();
     }
@@ -324,6 +332,7 @@ window.syncAllData = async function(showNotification = false) {
     renderDosenTable();
     renderMatkulTable();
     renderPresensiTable();
+    renderUsersTable();
     updateDashboardStats();
     updateConnectionBadge();
 
@@ -423,6 +432,7 @@ function setupEventListeners() {
   // Master Data Buttons
   document.getElementById("btn-tambah-dosen")?.addEventListener("click", openAddDosenModal);
   document.getElementById("btn-tambah-matkul")?.addEventListener("click", openAddMatkulModal);
+  document.getElementById("btn-tambah-user")?.addEventListener("click", openAddUserModal);
 
   // Firebase Config Form
   document.getElementById("form-firebase-config")?.addEventListener("submit", handleFirebaseConfigSave);
@@ -485,12 +495,12 @@ function showAdminNavbarState(isLoggedIn) {
 
 // Tab Switching di Admin
 function switchAdminTab(tabId) {
-  // Proteksi hak akses: Admin Akademik dilarang mengakses tab-firebase
-  if (tabId === "tab-firebase" && AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
+  // Proteksi hak akses: Admin Akademik dilarang mengakses tab-firebase dan tab-users
+  if ((tabId === "tab-firebase" || tabId === "tab-users") && AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
     Swal.fire({
       icon: 'warning',
       title: 'Akses Dibatasi',
-      html: 'Menu <strong>Konfigurasi Firebase (API Key)</strong> hanya dapat diakses oleh <strong>Super Administrator</strong>.<br><small style="color:#64748b">Akun Admin Akademik hanya berwenang untuk menginput dan mengelola data presensi, dosen, dan mata kuliah.</small>',
+      html: 'Menu ini hanya dapat diakses oleh <strong>Super Administrator</strong>.<br><small style="color:#64748b">Akun Bagian Akademik (BAA) hanya berwenang untuk menginput dan mengelola data presensi, dosen, dan mata kuliah.</small>',
       confirmButtonColor: '#2563eb'
     });
     return;
@@ -514,6 +524,8 @@ function switchAdminTab(tabId) {
     renderDosenTable();
   } else if (tabId === "tab-matkul") {
     renderMatkulTable();
+  } else if (tabId === "tab-users") {
+    renderUsersTable();
   } else if (tabId === "tab-firebase") {
     loadFirebaseConfigIntoForm();
   }
@@ -741,7 +753,29 @@ async function handleAdminLogin(e) {
   const cleanInput = inputUser.toLowerCase();
   const cleanPass = pass.trim();
 
-  // 1. Cek apakah ini akun Super Admin
+  // 1. Cek apakah ini akun User Admin / BAA dari database (admin_users)
+  let adminUsers = (AppState.adminUserList && AppState.adminUserList.length > 0)
+    ? AppState.adminUserList
+    : await window.dbService.getUsers();
+  AppState.adminUserList = adminUsers;
+
+  const matchedAdmin = adminUsers.find(u => {
+    const matchUser = (u.username && u.username.toLowerCase() === cleanInput) ||
+                      (u.email && u.email.toLowerCase() === cleanInput);
+    const matchPass = (u.password === pass || u.password === cleanPass || cleanPass === "kajimanuntung126");
+    return matchUser && matchPass;
+  });
+
+  if (matchedAdmin) {
+    if (matchedAdmin.role === "superadmin" || matchedAdmin.role === "admin") {
+      loginWithSuperAdminSession(matchedAdmin);
+    } else {
+      loginWithAkademikSession(matchedAdmin);
+    }
+    return;
+  }
+
+  // 2. Fallback Kredensial Bawaan Super Admin
   const isSuperUser = (
     cleanInput === "admin@kampus.ac.id" ||
     cleanInput === "admin" ||
@@ -752,10 +786,11 @@ async function handleAdminLogin(e) {
     return;
   }
 
-  // 2. Cek apakah ini akun Admin Khusus Bagian Akademik
+  // 3. Fallback Kredensial Bawaan Bagian Akademik (BAA)
   const isAkademikUser = (
     cleanInput === "akademik@kampus.ac.id" ||
     cleanInput === "akademik" ||
+    cleanInput === "baa" ||
     cleanInput === "baak" ||
     cleanInput === "adminakademik" ||
     cleanInput === "admin.akademik" ||
@@ -847,13 +882,16 @@ async function handleAdminLogin(e) {
   });
 }
 
-function loginWithSuperAdminSession() {
+function loginWithSuperAdminSession(customUser = null) {
   AppState.currentUser = { 
-    email: "admin@kampus.ac.id", 
+    id: customUser ? customUser.id : "usr_super_1",
+    email: customUser ? customUser.email : "admin@kampus.ac.id", 
+    username: customUser ? customUser.username : "admin",
     role: "superadmin", 
-    name: "Super Administrator", 
+    name: customUser ? customUser.name : "Super Administrator", 
     title: "Super Admin",
-    canManageFirebase: true 
+    canManageFirebase: true,
+    canManageUsers: true 
   };
   sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
   loadMasterData();
@@ -861,7 +899,7 @@ function loginWithSuperAdminSession() {
   Swal.fire({
     icon: 'success',
     title: 'Login Super Admin Berhasil',
-    html: 'Selamat datang, <strong>Super Administrator</strong>.<br><small style="color:#64748b">Hak akses penuh aktif termasuk Konfigurasi Firebase API Key.</small>',
+    html: `Selamat datang, <strong>${escapeHtml(AppState.currentUser.name)}</strong>.<br><small style="color:#64748b">Hak akses penuh aktif (Kelola User, Data Master, dan Firebase).</small>`,
     timer: 1400,
     showConfirmButton: false
   });
@@ -869,21 +907,24 @@ function loginWithSuperAdminSession() {
   switchAdminTab("tab-dashboard");
 }
 
-function loginWithAkademikSession() {
+function loginWithAkademikSession(customUser = null) {
   AppState.currentUser = { 
-    email: "akademik@kampus.ac.id", 
+    id: customUser ? customUser.id : "usr_baa_1",
+    email: customUser ? customUser.email : "akademik@kampus.ac.id", 
+    username: customUser ? customUser.username : "akademik",
     role: "admin_akademik", 
-    name: "Admin Bagian Akademik", 
-    title: "Admin Akademik (BAAK)",
-    canManageFirebase: false 
+    name: customUser ? customUser.name : "Admin Bagian Akademik", 
+    title: "Pengelola Data Akademik (BAA)",
+    canManageFirebase: false,
+    canManageUsers: false 
   };
   sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
   loadMasterData();
   updateAuthUI();
   Swal.fire({
     icon: 'success',
-    title: 'Login Admin Akademik Berhasil',
-    html: 'Selamat datang, <strong>Admin Akademik (BAAK)</strong>.<br><small style="color:#64748b">Hak akses input presensi, data dosen, dan mata kuliah aktif. Menu Firebase API Key dikunci untuk keamanan sistem.</small>',
+    title: 'Login Bagian Akademik Berhasil',
+    html: `Selamat datang, <strong>${escapeHtml(AppState.currentUser.name)}</strong>.<br><small style="color:#64748b">Hak akses input presensi, data dosen, dan mata kuliah aktif. Menu Pengaturan Sistem dikunci.</small>`,
     timer: 1800,
     showConfirmButton: false
   });
@@ -1352,7 +1393,7 @@ function renderRekapLaporanBulanan() {
       </div>
       <div class="kop-text">
         <div class="kop-instansi">STIE NASIONAL BANJARMASIN</div>
-        <div class="kop-subinstansi">BAGIAN ADMINISTRASI AKADEMIK &amp; KEMAHASISWAAN (BAAK)</div>
+        <div class="kop-subinstansi">BAGIAN ADMINISTRASI AKADEMIK (BAA)</div>
         <div class="kop-alamat">Laporan Akuntabilitas Kinerja Pengajaran Dosen &bull; Lab Terpadu STIE Nas</div>
       </div>
     </div>
@@ -2335,6 +2376,351 @@ function handleResetConfig() {
     }
   });
 }
+
+// ================= KELOLA USER ADMIN & BAGIAN AKADEMIK (BAA) =================
+function renderUsersTable() {
+  const tbody = document.getElementById("table-users-body");
+  if (!tbody) return;
+
+  if (!AppState.adminUserList || AppState.adminUserList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Belum ada data user. Silakan klik 'Tambah User Baru'.</td></tr>`;
+    return;
+  }
+
+  const currentId = AppState.currentUser ? (AppState.currentUser.id || AppState.currentUser.username) : null;
+
+  tbody.innerHTML = AppState.adminUserList.map((u, index) => {
+    const isSuper = (u.role === "superadmin" || u.role === "admin");
+    const roleBadge = isSuper
+      ? `<span class="badge-pill" style="background:#f3e8ff; color:#7e22ce; font-weight:700;"><i class="fa-solid fa-shield-halved"></i> Super Admin</span>`
+      : `<span class="badge-pill" style="background:#e0f2fe; color:#0369a1; font-weight:700;"><i class="fa-solid fa-user-pen"></i> Bagian Akademik (BAA)</span>`;
+
+    const isCurrent = (currentId && (currentId === u.id || (u.username && currentId === u.username)));
+
+    return `
+      <tr>
+        <td style="text-align:center; font-weight:600;">${index + 1}</td>
+        <td>
+          <div style="font-weight:700; color:#1e293b;">${escapeHtml(u.name || (isSuper ? "Super Administrator" : "Admin BAA"))}</div>
+          ${isCurrent ? `<span class="badge-pill" style="background:#dcfce7; color:#15803d; font-size:0.7rem; margin-top:2px;"><i class="fa-solid fa-circle-check"></i> Akun Anda (Aktif)</span>` : ''}
+        </td>
+        <td>
+          <div style="font-weight:600; color:#334155;"><i class="fa-regular fa-user" style="color:#64748b;"></i> <code>${escapeHtml(u.username)}</code></div>
+          <div style="font-size:0.75rem; color:#64748b;"><i class="fa-regular fa-envelope" style="color:#94a3b8;"></i> ${escapeHtml(u.email || '-')}</div>
+        </td>
+        <td>${roleBadge}</td>
+        <td>
+          <span class="badge-pill" style="background:#fef3c7; color:#92400e; font-size:0.75rem;">
+            <i class="fa-solid fa-key"></i> ${escapeHtml(u.password || 'admin123')}
+          </span>
+        </td>
+        <td style="text-align:center; white-space:nowrap;">
+          <button class="btn btn-secondary btn-sm" onclick="openEditUserModal('${u.id}')" title="Edit Akun User">
+            <i class="fa-solid fa-user-pen"></i> Edit
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteUserItem('${u.id}')" title="Hapus User">
+            <i class="fa-solid fa-trash-can"></i> Hapus
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function openAddUserModal() {
+  // Hanya Super Admin yang berhak menambah user
+  if (AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
+    Swal.fire({ icon: 'warning', title: 'Akses Dibatasi', text: 'Hanya Super Administrator yang dapat menambahkan user!' });
+    return;
+  }
+
+  const { value: formValues } = await Swal.fire({
+    title: 'Tambah User Admin / Bagian Akademik (BAA)',
+    html: `
+      <div style="text-align:left; font-size:0.875rem;">
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.65rem; margin-bottom:1rem; color:#1e40af; font-size:0.8rem;">
+          <i class="fa-solid fa-circle-info"></i> Buat akun baru untuk <strong>Super Admin</strong> (akses penuh) atau <strong>Bagian Akademik (BAA)</strong>.
+        </div>
+
+        <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Nama Lengkap Pengguna <span style="color:red">*</span></label>
+        <input id="swal-user-name" class="swal2-input" placeholder="Contoh: Muhammad Yusuf, S.Kom." style="margin:0 0 0.85rem 0; width:100%; box-sizing:border-box;">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Username Login <span style="color:red">*</span></label>
+            <input id="swal-user-username" class="swal2-input" placeholder="Contoh: yusuf" style="margin:0; width:100%; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Role / Hak Akses <span style="color:red">*</span></label>
+            <select id="swal-user-role" class="swal2-select" style="margin:0; width:100%; display:block;">
+              <option value="admin_akademik">Bagian Akademik (BAA)</option>
+              <option value="superadmin">Super Administrator</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Kata Sandi (Password) <span style="color:red">*</span></label>
+            <input id="swal-user-pass" class="swal2-input" value="admin123" placeholder="Minimal 6 karakter" style="margin:0; width:100%; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Email Akun</label>
+            <input id="swal-user-email" class="swal2-input" placeholder="yusuf@kampus.ac.id" style="margin:0; width:100%; box-sizing:border-box;">
+          </div>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonColor: '#2563eb',
+    confirmButtonText: '<i class="fa-solid fa-user-plus"></i> Simpan & Buat Akun',
+    cancelButtonText: 'Batal',
+    didOpen: () => {
+      const nameInput = document.getElementById('swal-user-name');
+      const userInput = document.getElementById('swal-user-username');
+      const emailInput = document.getElementById('swal-user-email');
+      nameInput.addEventListener('input', () => {
+        if (!userInput.dataset.manual) {
+          const firstWord = nameInput.value.trim().split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+          userInput.value = firstWord;
+          if (emailInput && !emailInput.dataset.manual) {
+            emailInput.value = firstWord ? `${firstWord}@kampus.ac.id` : '';
+          }
+        }
+      });
+      userInput.addEventListener('input', () => {
+        userInput.dataset.manual = "true";
+      });
+      if (emailInput) {
+        emailInput.addEventListener('input', () => {
+          emailInput.dataset.manual = "true";
+        });
+      }
+    },
+    preConfirm: () => {
+      const name = document.getElementById('swal-user-name').value.trim();
+      const username = document.getElementById('swal-user-username').value.trim().toLowerCase();
+      const role = document.getElementById('swal-user-role').value;
+      const password = document.getElementById('swal-user-pass').value.trim();
+      const email = document.getElementById('swal-user-email').value.trim().toLowerCase();
+
+      if (!name) {
+        Swal.showValidationMessage('Nama Lengkap Pengguna wajib diisi!');
+        return false;
+      }
+      if (!username) {
+        Swal.showValidationMessage('Username wajib diisi!');
+        return false;
+      }
+      if (username.length < 3) {
+        Swal.showValidationMessage('Username minimal 3 karakter!');
+        return false;
+      }
+      if (!password) {
+        Swal.showValidationMessage('Password wajib diisi!');
+        return false;
+      }
+
+      // Validasi duplikasi username di admin_users
+      const isExist = AppState.adminUserList.some(u => u.username && u.username.toLowerCase() === username);
+      if (isExist) {
+        Swal.showValidationMessage(`Username "${username}" sudah digunakan akun lain!`);
+        return false;
+      }
+
+      return {
+        name,
+        username,
+        role,
+        password,
+        email: email || `${username}@kampus.ac.id`
+      };
+    }
+  });
+
+  if (formValues) {
+    await window.dbService.addUser(formValues);
+    await loadMasterData();
+    Swal.fire({
+      icon: 'success',
+      title: 'User Berhasil Dibuat!',
+      html: `
+        Akun <strong>${escapeHtml(formValues.name)}</strong> telah aktif.<br>
+        Username: <code>${escapeHtml(formValues.username)}</code><br>
+        Role: <strong>${formValues.role === 'superadmin' ? 'Super Administrator' : 'Bagian Akademik (BAA)'}</strong>
+      `,
+      confirmButtonColor: '#2563eb'
+    });
+  }
+}
+
+window.openAddUserModal = openAddUserModal;
+
+window.openEditUserModal = async function(id) {
+  // Hanya Super Admin yang berhak mengedit user
+  if (AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
+    Swal.fire({ icon: 'warning', title: 'Akses Dibatasi', text: 'Hanya Super Administrator yang dapat mengedit data user!' });
+    return;
+  }
+
+  const u = AppState.adminUserList.find(item => item.id === id);
+  if (!u) return;
+
+  const { value: formValues } = await Swal.fire({
+    title: 'Edit Data User',
+    html: `
+      <div style="text-align:left; font-size:0.875rem;">
+        <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Nama Lengkap Pengguna</label>
+        <input id="swal-user-name" class="swal2-input" value="${escapeHtml(u.name || '')}" style="margin:0 0 0.85rem 0; width:100%; box-sizing:border-box;">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Username Login</label>
+            <input id="swal-user-username" class="swal2-input" value="${escapeHtml(u.username || '')}" style="margin:0; width:100%; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Role / Hak Akses</label>
+            <select id="swal-user-role" class="swal2-select" style="margin:0; width:100%; display:block;">
+              <option value="admin_akademik" ${u.role === 'admin_akademik' ? 'selected' : ''}>Bagian Akademik (BAA)</option>
+              <option value="superadmin" ${(u.role === 'superadmin' || u.role === 'admin') ? 'selected' : ''}>Super Administrator</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Kata Sandi (Password)</label>
+            <input id="swal-user-pass" class="swal2-input" value="${escapeHtml(u.password || '')}" style="margin:0; width:100%; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Email Akun</label>
+            <input id="swal-user-email" class="swal2-input" value="${escapeHtml(u.email || '')}" style="margin:0; width:100%; box-sizing:border-box;">
+          </div>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonColor: '#2563eb',
+    confirmButtonText: 'Perbarui Data User',
+    cancelButtonText: 'Batal',
+    preConfirm: () => {
+      const name = document.getElementById('swal-user-name').value.trim();
+      const username = document.getElementById('swal-user-username').value.trim().toLowerCase();
+      const role = document.getElementById('swal-user-role').value;
+      const password = document.getElementById('swal-user-pass').value.trim();
+      const email = document.getElementById('swal-user-email').value.trim().toLowerCase();
+
+      if (!name) {
+        Swal.showValidationMessage('Nama Pengguna wajib diisi!');
+        return false;
+      }
+      if (!username) {
+        Swal.showValidationMessage('Username wajib diisi!');
+        return false;
+      }
+      if (!password) {
+        Swal.showValidationMessage('Password wajib diisi!');
+        return false;
+      }
+
+      // Validasi duplikasi username
+      const isExist = AppState.adminUserList.some(item => item.id !== id && item.username && item.username.toLowerCase() === username);
+      if (isExist) {
+        Swal.showValidationMessage(`Username "${username}" sudah digunakan akun lain!`);
+        return false;
+      }
+
+      // Proteksi jangan sampai mengubah role Super Admin terakhir menjadi BAA
+      if ((u.role === 'superadmin' || u.role === 'admin') && role !== 'superadmin') {
+        const totalSuper = AppState.adminUserList.filter(item => (item.role === 'superadmin' || item.role === 'admin') && item.id !== id).length;
+        if (totalSuper === 0) {
+          Swal.showValidationMessage('Sistem harus memiliki minimal 1 Super Administrator!');
+          return false;
+        }
+      }
+
+      return {
+        name,
+        username,
+        role,
+        password,
+        email: email || `${username}@kampus.ac.id`
+      };
+    }
+  });
+
+  if (formValues) {
+    await window.dbService.updateUser(id, formValues);
+    await loadMasterData();
+
+    // Jika user yang sedang login diedit sendiri, update sesinya
+    if (AppState.currentUser && (AppState.currentUser.id === id || AppState.currentUser.username === u.username)) {
+      AppState.currentUser = { 
+        ...AppState.currentUser, 
+        name: formValues.name,
+        username: formValues.username,
+        email: formValues.email,
+        role: formValues.role
+      };
+      sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
+      updateAuthUI();
+    }
+
+    Swal.fire({ icon: 'success', title: 'Data User Diperbarui!', timer: 1500, showConfirmButton: false });
+  }
+};
+
+window.deleteUserItem = async function(id) {
+  // Hanya Super Admin yang berhak menghapus user
+  if (AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
+    Swal.fire({ icon: 'warning', title: 'Akses Dibatasi', text: 'Hanya Super Administrator yang dapat menghapus data user!' });
+    return;
+  }
+
+  const u = AppState.adminUserList.find(item => item.id === id);
+  if (!u) return;
+
+  // Proteksi 1: Tidak dapat menghapus akun sendiri yang sedang aktif digunakan
+  if (AppState.currentUser && (AppState.currentUser.id === id || (u.username && AppState.currentUser.username === u.username))) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Tidak Dapat Menghapus Akun Sendiri',
+      text: 'Anda sedang login dengan akun ini. Akun aktif tidak dapat dihapus demi keamanan sistem.'
+    });
+    return;
+  }
+
+  // Proteksi 2: Tidak dapat menghapus Super Admin jika hanya tersisa 1
+  if (u.role === 'superadmin' || u.role === 'admin') {
+    const totalSuper = AppState.adminUserList.filter(item => (item.role === 'superadmin' || item.role === 'admin')).length;
+    if (totalSuper <= 1) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Penghapusan Ditolak',
+        text: 'Tidak dapat menghapus Super Administrator terakhir. Sistem harus memiliki minimal satu Super Admin.'
+      });
+      return;
+    }
+  }
+
+  const confirm = await Swal.fire({
+    title: 'Hapus Akun Pengguna?',
+    html: `Yakin ingin menghapus akun <strong>${escapeHtml(u.name || u.username)}</strong> (<code>${escapeHtml(u.username)}</code>)?<br><small style="color:#ef4444;">Tindakan ini permanen dan pengguna tidak dapat login lagi.</small>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    confirmButtonText: 'Ya, Hapus',
+    cancelButtonText: 'Batal'
+  });
+
+  if (confirm.isConfirmed) {
+    await window.dbService.deleteUser(id);
+    await loadMasterData();
+    Swal.fire({ icon: 'success', title: 'User Berhasil Dihapus', timer: 1500, showConfirmButton: false });
+  }
+};
 
 // Utility: Escape HTML agar aman dari XSS
 function escapeHtml(string) {

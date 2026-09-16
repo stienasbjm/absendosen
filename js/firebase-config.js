@@ -80,6 +80,27 @@ const INITIAL_PRESENSI = [
   }
 ];
 
+const INITIAL_ADMIN_USERS = [
+  {
+    id: "usr_super_1",
+    name: "Super Administrator",
+    username: "admin",
+    email: "admin@kampus.ac.id",
+    password: "admin123",
+    role: "superadmin",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "usr_baa_1",
+    name: "Pengelola Data Akademik",
+    username: "akademik",
+    email: "akademik@kampus.ac.id",
+    password: "akademik123",
+    role: "admin_akademik",
+    createdAt: new Date().toISOString()
+  }
+];
+
 class DataService {
   constructor() {
     this.isFirebaseReady = false;
@@ -155,7 +176,14 @@ class DataService {
       if (localStorage.getItem('presensi_absen_records') === null) {
         localStorage.setItem('presensi_absen_records', JSON.stringify(INITIAL_PRESENSI));
       }
+      if (localStorage.getItem('presensi_admin_users') === null) {
+        localStorage.setItem('presensi_admin_users', JSON.stringify(INITIAL_ADMIN_USERS));
+      }
       localStorage.setItem('presensi_seed_done', 'true');
+    } else {
+      if (localStorage.getItem('presensi_admin_users') === null) {
+        localStorage.setItem('presensi_admin_users', JSON.stringify(INITIAL_ADMIN_USERS));
+      }
     }
   }
 
@@ -584,6 +612,128 @@ class DataService {
     return true;
   }
 
+  // ================= CRUD USER ADMIN & BAA =================
+  async getUsers() {
+    let localData = [];
+    try {
+      const data = localStorage.getItem('presensi_admin_users');
+      if (data) {
+        localData = JSON.parse(data);
+      } else {
+        localData = [...INITIAL_ADMIN_USERS];
+        localStorage.setItem('presensi_admin_users', JSON.stringify(localData));
+      }
+    } catch (e) {
+      console.warn("Gagal membaca localStorage presensi_admin_users", e);
+      localData = [...INITIAL_ADMIN_USERS];
+    }
+
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const snap = await this.db.collection('admin_users').get();
+        if (!snap.empty) {
+          const cloudData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          localStorage.setItem('presensi_admin_users', JSON.stringify(cloudData));
+          localStorage.setItem('presensi_cloud_users_seeded', 'true');
+          return cloudData;
+        } else {
+          const isCloudSeeded = localStorage.getItem('presensi_cloud_users_seeded');
+          if (!isCloudSeeded && localData.length > 0) {
+            await this.seedCollectionToFirestore('admin_users', localData);
+            localStorage.setItem('presensi_cloud_users_seeded', 'true');
+            return localData;
+          }
+          return localData;
+        }
+      } catch (err) {
+        console.warn("Firestore error saat getUsers, fallback ke LocalStorage:", err);
+      }
+    }
+    return localData;
+  }
+
+  async addUser(userData) {
+    const payload = {
+      name: (userData.name || '').trim(),
+      username: (userData.username || '').trim().toLowerCase(),
+      email: (userData.email || '').trim().toLowerCase(),
+      password: (userData.password || 'admin123').trim(),
+      role: userData.role || 'admin_akademik',
+      createdAt: new Date().toISOString()
+    };
+
+    let docId = 'usr_' + Date.now();
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const docRef = await this.db.collection('admin_users').add({
+          ...payload,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        if (docRef && docRef.id) docId = docRef.id;
+      } catch (err) {
+        console.warn("Firestore error saat addUser:", err);
+      }
+    }
+
+    const newUser = { id: docId, ...payload };
+    try {
+      const stored = localStorage.getItem('presensi_admin_users');
+      let list = stored ? JSON.parse(stored) : [];
+      list = list.filter(u => u.id !== docId && u.username.toLowerCase() !== payload.username);
+      list.push(newUser);
+      localStorage.setItem('presensi_admin_users', JSON.stringify(list));
+      this.notifyLocalSync();
+    } catch (e) {
+      console.warn("Gagal simpan user ke localStorage:", e);
+    }
+    return newUser;
+  }
+
+  async updateUser(id, updatedData) {
+    if (this.isFirebaseReady && this.db) {
+      try {
+        await this.db.collection('admin_users').doc(id).update(updatedData);
+      } catch (err) {
+        console.warn("Firestore error saat updateUser:", err);
+      }
+    }
+
+    try {
+      const stored = localStorage.getItem('presensi_admin_users');
+      let list = stored ? JSON.parse(stored) : [];
+      const idx = list.findIndex(u => u.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updatedData };
+        localStorage.setItem('presensi_admin_users', JSON.stringify(list));
+        this.notifyLocalSync();
+      }
+    } catch (e) {
+      console.warn("Gagal update user di localStorage:", e);
+    }
+    return true;
+  }
+
+  async deleteUser(id) {
+    try {
+      const stored = localStorage.getItem('presensi_admin_users');
+      let list = stored ? JSON.parse(stored) : [];
+      list = list.filter(u => u.id !== id);
+      localStorage.setItem('presensi_admin_users', JSON.stringify(list));
+      this.notifyLocalSync();
+    } catch (e) {
+      console.warn("Gagal delete user dari localStorage:", e);
+    }
+
+    if (this.isFirebaseReady && this.db) {
+      try {
+        await this.db.collection('admin_users').doc(id).delete().catch(() => {});
+      } catch (err) {
+        console.warn("Firestore error saat deleteUser:", err);
+      }
+    }
+    return true;
+  }
+
   // ================= SINKRONISASI BANTUAN =================
   notifyLocalSync() {
     try {
@@ -627,6 +777,11 @@ class DataService {
         if (typeof callback === 'function') callback('matakuliah');
       }, err => console.warn("Realtime matakuliah err:", err));
       unsubs.push(unsubMatkul);
+
+      const unsubUsers = this.db.collection('admin_users').onSnapshot(() => {
+        if (typeof callback === 'function') callback('admin_users');
+      }, err => console.warn("Realtime admin_users err:", err));
+      unsubs.push(unsubUsers);
     } catch (e) {
       console.warn("Gagal inisialisasi realtime listener:", e);
     }
@@ -637,8 +792,9 @@ class DataService {
     const dosen = await this.getDosen();
     const matkul = await this.getMatkul();
     const presensi = await this.getPresensi();
+    const users = await this.getUsers();
     this.notifyLocalSync();
-    return { dosen, matkul, presensi };
+    return { dosen, matkul, presensi, users };
   }
 }
 
