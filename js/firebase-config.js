@@ -194,46 +194,86 @@ class DataService {
 
   // ================= CRUD DOSEN =================
   async getDosen() {
+    let localData = [];
+    try {
+      const data = localStorage.getItem('presensi_dosen_data');
+      if (data) localData = JSON.parse(data);
+    } catch (e) {
+      console.warn("Gagal membaca localStorage presensi_dosen_data", e);
+    }
+
     if (this.isFirebaseReady) {
       try {
-        const snap = await this.db.collection('dosen').orderBy('nama').get();
+        const snap = await this.db.collection('dosen').get();
         if (!snap.empty) {
-          return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const cloudData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Gabungkan cloudData dan localData tanpa duplikasi
+          const map = new Map();
+          localData.forEach(d => {
+            const key = (d.username || d.id || d.nama || '').trim().toLowerCase();
+            if (key) map.set(key, d);
+          });
+          cloudData.forEach(d => {
+            const key = (d.username || d.id || d.nama || '').trim().toLowerCase();
+            if (key) map.set(key, d);
+          });
+
+          const merged = Array.from(map.values());
+          localStorage.setItem('presensi_dosen_data', JSON.stringify(merged));
+          return merged;
         }
       } catch (err) {
         console.warn("Firestore error saat getDosen, fallback ke LocalStorage:", err);
       }
     }
-    const data = localStorage.getItem('presensi_dosen_data');
-    return data ? JSON.parse(data) : [];
+    return localData.length > 0 ? localData : INITIAL_DOSEN;
   }
 
   async addDosen(dosen) {
     const payload = {
-      nip: dosen.nip || '',
-      nama: dosen.nama,
+      nip: (dosen.nip || '').trim(),
+      nama: (dosen.nama || '').trim(),
       status: dosen.status || 'Tetap',
-      username: dosen.username || dosen.nama.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, ''),
-      email: dosen.email || `${dosen.username || 'dosen'}@kampus.ac.id`,
-      password: dosen.password || 'dosen123'
+      username: (dosen.username || dosen.nama.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '')).trim(),
+      email: (dosen.email || `${dosen.username || 'dosen'}@kampus.ac.id`).trim(),
+      password: (dosen.password || 'dosen123').trim()
     };
 
+    let docId = 'dsn_' + Date.now();
     if (this.isFirebaseReady) {
       try {
         const docRef = await this.db.collection('dosen').add({
           ...payload,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        return { id: docRef.id, ...payload };
+        if (docRef && docRef.id) {
+          docId = docRef.id;
+        }
       } catch (err) {
         console.warn("Firestore error saat addDosen, fallback ke local:", err);
       }
     }
-    const list = await this.getDosen();
-    const newDosen = { id: 'dsn_' + Date.now(), ...payload };
-    list.unshift(newDosen);
-    localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
-    return newDosen;
+
+    // Selalu simpan juga ke LocalStorage agar akun baru langsung siap login kapan pun
+    try {
+      const stored = localStorage.getItem('presensi_dosen_data');
+      let list = stored ? JSON.parse(stored) : [];
+      const newDosen = { id: docId, ...payload };
+      const idx = list.findIndex(d => 
+        (d.id === docId) || 
+        (d.username && d.username.toLowerCase() === payload.username.toLowerCase())
+      );
+      if (idx !== -1) {
+        list[idx] = newDosen;
+      } else {
+        list.unshift(newDosen);
+      }
+      localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
+      return newDosen;
+    } catch (e) {
+      return { id: docId, ...payload };
+    }
   }
 
   async updateDosen(id, updatedData) {
@@ -244,12 +284,15 @@ class DataService {
         console.warn("Firestore error saat updateDosen:", err);
       }
     }
-    const list = await this.getDosen();
-    const idx = list.findIndex(d => d.id === id);
-    if (idx !== -1) {
-      list[idx] = { ...list[idx], ...updatedData };
-      localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
-    }
+    try {
+      const stored = localStorage.getItem('presensi_dosen_data');
+      let list = stored ? JSON.parse(stored) : [];
+      const idx = list.findIndex(d => d.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updatedData };
+        localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
+      }
+    } catch (e) {}
     return true;
   }
 
@@ -261,9 +304,12 @@ class DataService {
         console.warn("Firestore error saat deleteDosen:", err);
       }
     }
-    let list = await this.getDosen();
-    list = list.filter(d => d.id !== id);
-    localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
+    try {
+      const stored = localStorage.getItem('presensi_dosen_data');
+      let list = stored ? JSON.parse(stored) : [];
+      list = list.filter(d => d.id !== id);
+      localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
+    } catch (e) {}
     return true;
   }
 

@@ -572,7 +572,34 @@ async function handleAbsenSubmit(e) {
 }
 
 // ================= AUTH PORTAL (ADMIN & DOSEN) =================
-function handleAdminLogin(e) {
+function findMatchingDosen(list, cleanInput, cleanPass, rawPass) {
+  if (!list || !Array.isArray(list)) return null;
+  return list.find(d => {
+    const u = (d.username || '').trim().toLowerCase();
+    const em = (d.email || '').trim().toLowerCase();
+    const nip = (d.nip || '').trim().toLowerCase();
+    const nama = (d.nama || '').trim().toLowerCase();
+    const storedPass = String(d.password !== undefined && d.password !== null ? d.password : 'dosen123').trim();
+
+    const usernameMatch = (
+      (u && u === cleanInput) ||
+      (em && em === cleanInput) ||
+      (nip && nip === cleanInput) ||
+      (nama && (nama === cleanInput || nama.replace(/[^a-z0-9]/g, '') === cleanInput.replace(/[^a-z0-9]/g, ''))) ||
+      (cleanInput.includes('@') && em.startsWith(cleanInput.split('@')[0]))
+    );
+
+    const passwordMatch = (
+      storedPass === cleanPass ||
+      storedPass === rawPass ||
+      (d.password && String(d.password) === rawPass)
+    );
+
+    return usernameMatch && passwordMatch;
+  });
+}
+
+async function handleAdminLogin(e) {
   e.preventDefault();
   const inputUser = document.getElementById("login-email").value.trim();
   const pass = document.getElementById("login-password").value;
@@ -612,10 +639,18 @@ function handleAdminLogin(e) {
   }
 
   // 3. Cek apakah ini akun User Dosen di Master Data Dosen
-  const dosenMatch = AppState.dosenList.find(d => 
-    (d.username?.toLowerCase() === cleanInput || d.email?.toLowerCase() === cleanInput) &&
-    (d.password === cleanPass || d.password === pass)
-  );
+  let currentDosenList = (AppState.dosenList && AppState.dosenList.length > 0)
+    ? AppState.dosenList
+    : await window.dbService.getDosen();
+
+  let dosenMatch = findMatchingDosen(currentDosenList, cleanInput, cleanPass, pass);
+
+  // Jika belum ditemukan di state lokal, reload langsung dari database / storage
+  if (!dosenMatch) {
+    currentDosenList = await window.dbService.getDosen();
+    AppState.dosenList = currentDosenList;
+    dosenMatch = findMatchingDosen(currentDosenList, cleanInput, cleanPass, pass);
+  }
 
   if (dosenMatch) {
     AppState.currentUser = {
@@ -667,17 +702,17 @@ function handleAdminLogin(e) {
         Swal.fire({
           icon: 'error',
           title: 'Login Gagal',
-          html: 'Username/Email atau password salah!<br><small style="color:#64748b">Pastikan akun Anda sudah terdaftar dalam sistem.</small>'
+          html: 'Username/Email atau kata sandi tidak cocok. Silakan periksa kembali akun Anda.'
         });
       });
     return;
   }
 
-  // Gagal login
+  // 5. Gagal login (Pesan bersih tanpa membocorkan kredensial demo)
   Swal.fire({
     icon: 'error',
     title: 'Login Gagal',
-    html: 'Username/Email atau password tidak cocok!<br><small style="color:#64748b">Admin Akademik: <code>akademik@kampus.ac.id</code> / <code>akademik123</code><br>Super Admin: <code>admin@kampus.ac.id</code> / <code>admin123</code><br>Dosen: Gunakan akun yang dibuatkan admin (misal: <code>hendra</code> / <code>dosen123</code>)</small>'
+    html: 'Username/Email atau kata sandi tidak cocok. Silakan periksa kembali akun Anda.'
   });
 }
 
