@@ -144,55 +144,18 @@ class DataService {
   }
 
   initLocalStorageSeed() {
-    const existingDosen = localStorage.getItem('presensi_dosen_data');
-    if (!existingDosen) {
-      localStorage.setItem('presensi_dosen_data', JSON.stringify(INITIAL_DOSEN));
-    } else {
-      // Pastikan data dosen yang ada memiliki kredensial username & password
-      try {
-        const parsed = JSON.parse(existingDosen);
-        let updated = false;
-        parsed.forEach((d, idx) => {
-          if (!d.username || !d.password) {
-            const seed = INITIAL_DOSEN[idx] || {};
-            d.username = d.username || seed.username || (d.nama.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + (idx+1));
-            d.email = d.email || seed.email || `${d.username}@kampus.ac.id`;
-            d.password = d.password || seed.password || 'dosen123';
-            updated = true;
-          }
-        });
-        if (updated) {
-          localStorage.setItem('presensi_dosen_data', JSON.stringify(parsed));
-        }
-      } catch (e) {
+    const isSeeded = localStorage.getItem('presensi_seed_done');
+    if (!isSeeded) {
+      if (localStorage.getItem('presensi_dosen_data') === null) {
         localStorage.setItem('presensi_dosen_data', JSON.stringify(INITIAL_DOSEN));
       }
-    }
-
-    const existingMatkul = localStorage.getItem('presensi_matkul_data');
-    if (!existingMatkul) {
-      localStorage.setItem('presensi_matkul_data', JSON.stringify(INITIAL_MATKUL));
-    } else {
-      try {
-        const parsedMk = JSON.parse(existingMatkul);
-        let updatedMk = false;
-        parsedMk.forEach((m, idx) => {
-          if (!m.dosenNama) {
-            const seed = INITIAL_MATKUL[idx] || {};
-            m.dosenNama = seed.dosenNama || "Dr. Hendra Wijaya, S.E., M.Ak.";
-            updatedMk = true;
-          }
-        });
-        if (updatedMk) {
-          localStorage.setItem('presensi_matkul_data', JSON.stringify(parsedMk));
-        }
-      } catch (e) {
+      if (localStorage.getItem('presensi_matkul_data') === null) {
         localStorage.setItem('presensi_matkul_data', JSON.stringify(INITIAL_MATKUL));
       }
-    }
-
-    if (!localStorage.getItem('presensi_absen_records')) {
-      localStorage.setItem('presensi_absen_records', JSON.stringify(INITIAL_PRESENSI));
+      if (localStorage.getItem('presensi_absen_records') === null) {
+        localStorage.setItem('presensi_absen_records', JSON.stringify(INITIAL_PRESENSI));
+      }
+      localStorage.setItem('presensi_seed_done', 'true');
     }
   }
 
@@ -206,32 +169,30 @@ class DataService {
       console.warn("Gagal membaca localStorage presensi_dosen_data", e);
     }
 
-    if (this.isFirebaseReady) {
+    if (this.isFirebaseReady && this.db) {
       try {
         const snap = await this.db.collection('dosen').get();
         if (!snap.empty) {
           const cloudData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          
-          // Gabungkan cloudData dan localData tanpa duplikasi
-          const map = new Map();
-          localData.forEach(d => {
-            const key = (d.username || d.id || d.nama || '').trim().toLowerCase();
-            if (key) map.set(key, d);
-          });
-          cloudData.forEach(d => {
-            const key = (d.username || d.id || d.nama || '').trim().toLowerCase();
-            if (key) map.set(key, d);
-          });
-
-          const merged = Array.from(map.values());
-          localStorage.setItem('presensi_dosen_data', JSON.stringify(merged));
-          return merged;
+          localStorage.setItem('presensi_dosen_data', JSON.stringify(cloudData));
+          localStorage.setItem('presensi_cloud_dosen_seeded', 'true');
+          return cloudData;
+        } else {
+          // Jika Firestore dosen masih kosong dan belum pernah di-seed
+          const isCloudSeeded = localStorage.getItem('presensi_cloud_dosen_seeded');
+          if (!isCloudSeeded && localData.length > 0) {
+            await this.seedCollectionToFirestore('dosen', localData);
+            localStorage.setItem('presensi_cloud_dosen_seeded', 'true');
+            return localData;
+          }
+          // Kembalikan data lokal yang ada (jangan timpa paksa ke [])
+          return localData;
         }
       } catch (err) {
         console.warn("Firestore error saat getDosen, fallback ke LocalStorage:", err);
       }
     }
-    return localData.length > 0 ? localData : INITIAL_DOSEN;
+    return localData;
   }
 
   async addDosen(dosen) {
@@ -245,7 +206,7 @@ class DataService {
     };
 
     let docId = 'dsn_' + Date.now();
-    if (this.isFirebaseReady) {
+    if (this.isFirebaseReady && this.db) {
       try {
         const docRef = await this.db.collection('dosen').add({
           ...payload,
@@ -259,7 +220,7 @@ class DataService {
       }
     }
 
-    // Selalu simpan juga ke LocalStorage agar akun baru langsung siap login kapan pun
+    // Simpan ke LocalStorage sebagai cache lokal
     try {
       const stored = localStorage.getItem('presensi_dosen_data');
       let list = stored ? JSON.parse(stored) : [];
@@ -274,6 +235,7 @@ class DataService {
         list.unshift(newDosen);
       }
       localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
+      localStorage.setItem('presensi_cloud_dosen_seeded', 'true');
       this.notifyLocalSync();
       return newDosen;
     } catch (e) {
@@ -282,7 +244,7 @@ class DataService {
   }
 
   async updateDosen(id, updatedData) {
-    if (this.isFirebaseReady) {
+    if (this.isFirebaseReady && this.db) {
       try {
         await this.db.collection('dosen').doc(id).update(updatedData);
       } catch (err) {
@@ -302,21 +264,61 @@ class DataService {
     return true;
   }
 
-  async deleteDosen(id) {
-    if (this.isFirebaseReady) {
+  async deleteDosen(id, dosenObj = null) {
+    // 1. Eksekusi Hapus dari LocalStorage terlebih dahulu (Instan & Pasti)
+    try {
+      const stored = localStorage.getItem('presensi_dosen_data');
+      let list = stored ? JSON.parse(stored) : [];
+      list = list.filter(d => {
+        if (d.id === id) return false;
+        if (dosenObj) {
+          if (dosenObj.id && d.id === dosenObj.id) return false;
+          if (dosenObj.username && d.username && d.username.trim().toLowerCase() === dosenObj.username.trim().toLowerCase()) return false;
+          if (dosenObj.nama && d.nama && d.nama.trim().toLowerCase() === dosenObj.nama.trim().toLowerCase()) return false;
+          if (dosenObj.nip && d.nip && d.nip.trim() === dosenObj.nip.trim()) return false;
+          if (dosenObj.email && d.email && d.email.trim().toLowerCase() === dosenObj.email.trim().toLowerCase()) return false;
+        }
+        return true;
+      });
+      localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
+      this.notifyLocalSync();
+    } catch (e) {
+      console.warn("Error update local presensi_dosen_data saat deleteDosen:", e);
+    }
+
+    // 2. Eksekusi Hapus dari Cloud Firestore secara menyeluruh
+    if (this.isFirebaseReady && this.db) {
       try {
-        await this.db.collection('dosen').doc(id).delete();
+        // Hapus langsung berdasarkan ID dokumen
+        await this.db.collection('dosen').doc(id).delete().catch(() => {});
+
+        // Cari dan bersihkan dokumen apapun yang identik di Firestore (menghindari duplikasi id/username)
+        const snap = await this.db.collection('dosen').get();
+        if (!snap.empty) {
+          const deletePromises = [];
+          snap.forEach(doc => {
+            const data = doc.data();
+            let shouldDelete = (doc.id === id);
+            if (dosenObj) {
+              if (dosenObj.id && doc.id === dosenObj.id) shouldDelete = true;
+              if (dosenObj.username && data.username && data.username.trim().toLowerCase() === dosenObj.username.trim().toLowerCase()) shouldDelete = true;
+              if (dosenObj.nama && data.nama && data.nama.trim().toLowerCase() === dosenObj.nama.trim().toLowerCase()) shouldDelete = true;
+              if (dosenObj.nip && data.nip && data.nip.trim() === dosenObj.nip.trim()) shouldDelete = true;
+              if (dosenObj.email && data.email && data.email.trim().toLowerCase() === dosenObj.email.trim().toLowerCase()) shouldDelete = true;
+            }
+            if (shouldDelete) {
+              deletePromises.push(doc.ref.delete().catch(() => {}));
+            }
+          });
+          if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+          }
+        }
       } catch (err) {
         console.warn("Firestore error saat deleteDosen:", err);
       }
     }
-    try {
-      const stored = localStorage.getItem('presensi_dosen_data');
-      let list = stored ? JSON.parse(stored) : [];
-      list = list.filter(d => d.id !== id);
-      localStorage.setItem('presensi_dosen_data', JSON.stringify(list));
-      this.notifyLocalSync();
-    } catch (e) {}
+
     return true;
   }
 
@@ -330,34 +332,28 @@ class DataService {
       console.warn("Gagal membaca localStorage presensi_matkul_data", e);
     }
 
-    if (this.isFirebaseReady) {
+    if (this.isFirebaseReady && this.db) {
       try {
         const snap = await this.db.collection('matakuliah').orderBy('nama').get();
         if (!snap.empty) {
           const cloudData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-          // Gabungkan cloudData dan localData tanpa duplikasi
-          const map = new Map();
-          localData.forEach(m => {
-            const key = (m.id || m.kode || m.nama || '').trim().toLowerCase();
-            if (key) map.set(key, m);
-          });
-          cloudData.forEach(m => {
-            const key = (m.id || m.kode || m.nama || '').trim().toLowerCase();
-            if (key) map.set(key, m);
-          });
-
-          const merged = Array.from(map.values());
-          localStorage.setItem('presensi_matkul_data', JSON.stringify(merged));
-          return merged;
-        } else if (localData.length > 0) {
-          this.seedCollectionToFirestore('matakuliah', localData).catch(() => {});
+          localStorage.setItem('presensi_matkul_data', JSON.stringify(cloudData));
+          localStorage.setItem('presensi_cloud_matkul_seeded', 'true');
+          return cloudData;
+        } else {
+          const isCloudSeeded = localStorage.getItem('presensi_cloud_matkul_seeded');
+          if (!isCloudSeeded && localData.length > 0) {
+            await this.seedCollectionToFirestore('matakuliah', localData);
+            localStorage.setItem('presensi_cloud_matkul_seeded', 'true');
+            return localData;
+          }
+          return localData;
         }
       } catch (err) {
         console.warn("Firestore error saat getMatkul, fallback ke LocalStorage:", err);
       }
     }
-    return localData.length > 0 ? localData : INITIAL_MATKUL;
+    return localData;
   }
 
   async addMatkul(matkul) {
@@ -393,6 +389,7 @@ class DataService {
         list.unshift(newMatkul);
       }
       localStorage.setItem('presensi_matkul_data', JSON.stringify(list));
+      localStorage.setItem('presensi_cloud_matkul_seeded', 'true');
       this.notifyLocalSync();
       return newMatkul;
     } catch (e) {
@@ -421,21 +418,55 @@ class DataService {
     return true;
   }
 
-  async deleteMatkul(id) {
-    if (this.isFirebaseReady) {
+  async deleteMatkul(id, matkulObj = null) {
+    // 1. Eksekusi Hapus dari LocalStorage terlebih dahulu (Instan & Pasti)
+    try {
+      const stored = localStorage.getItem('presensi_matkul_data');
+      let list = stored ? JSON.parse(stored) : [];
+      list = list.filter(m => {
+        if (m.id === id) return false;
+        if (matkulObj) {
+          if (matkulObj.id && m.id === matkulObj.id) return false;
+          if (matkulObj.nama && m.nama && m.nama.trim().toLowerCase() === matkulObj.nama.trim().toLowerCase()) return false;
+          if (matkulObj.kode && m.kode && m.kode.trim().toLowerCase() === matkulObj.kode.trim().toLowerCase()) return false;
+        }
+        return true;
+      });
+      localStorage.setItem('presensi_matkul_data', JSON.stringify(list));
+      this.notifyLocalSync();
+    } catch (e) {
+      console.warn("Error update local presensi_matkul_data saat deleteMatkul:", e);
+    }
+
+    // 2. Eksekusi Hapus dari Cloud Firestore secara menyeluruh
+    if (this.isFirebaseReady && this.db) {
       try {
-        await this.db.collection('matakuliah').doc(id).delete();
+        await this.db.collection('matakuliah').doc(id).delete().catch(() => {});
+
+        const snap = await this.db.collection('matakuliah').get();
+        if (!snap.empty) {
+          const deletePromises = [];
+          snap.forEach(doc => {
+            const data = doc.data();
+            let shouldDelete = (doc.id === id);
+            if (matkulObj) {
+              if (matkulObj.id && doc.id === matkulObj.id) shouldDelete = true;
+              if (matkulObj.nama && data.nama && data.nama.trim().toLowerCase() === matkulObj.nama.trim().toLowerCase()) shouldDelete = true;
+              if (matkulObj.kode && data.kode && data.kode.trim().toLowerCase() === matkulObj.kode.trim().toLowerCase()) shouldDelete = true;
+            }
+            if (shouldDelete) {
+              deletePromises.push(doc.ref.delete().catch(() => {}));
+            }
+          });
+          if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+          }
+        }
       } catch (err) {
         console.warn("Firestore error saat deleteMatkul:", err);
       }
     }
-    try {
-      const stored = localStorage.getItem('presensi_matkul_data');
-      let list = stored ? JSON.parse(stored) : [];
-      list = list.filter(m => m.id !== id);
-      localStorage.setItem('presensi_matkul_data', JSON.stringify(list));
-      this.notifyLocalSync();
-    } catch (e) {}
+
     return true;
   }
 
@@ -449,7 +480,7 @@ class DataService {
       console.warn("Gagal membaca localStorage presensi_absen_records", e);
     }
 
-    if (this.isFirebaseReady) {
+    if (this.isFirebaseReady && this.db) {
       try {
         const snap = await this.db.collection('presensi').orderBy('createdAt', 'desc').get();
         if (!snap.empty) {
@@ -461,27 +492,23 @@ class DataService {
               createdAt: d.createdAt?.toDate ? d.createdAt.toDate().toISOString() : (d.createdAt || new Date().toISOString())
             };
           });
-
-          // Merge cloudData dan localData tanpa duplikasi id
-          const map = new Map();
-          localData.forEach(p => {
-            if (p && p.id) map.set(p.id, p);
-          });
-          cloudData.forEach(p => {
-            if (p && p.id) map.set(p.id, p);
-          });
-
-          const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-          localStorage.setItem('presensi_absen_records', JSON.stringify(merged));
-          return merged;
-        } else if (localData.length > 0) {
-          this.seedCollectionToFirestore('presensi', localData).catch(() => {});
+          localStorage.setItem('presensi_absen_records', JSON.stringify(cloudData));
+          localStorage.setItem('presensi_cloud_presensi_seeded', 'true');
+          return cloudData;
+        } else {
+          const isCloudSeeded = localStorage.getItem('presensi_cloud_presensi_seeded');
+          if (!isCloudSeeded && localData.length > 0) {
+            await this.seedCollectionToFirestore('presensi', localData);
+            localStorage.setItem('presensi_cloud_presensi_seeded', 'true');
+            return localData;
+          }
+          return localData;
         }
       } catch (err) {
         console.warn("Firestore error saat getPresensi, fallback ke LocalStorage:", err);
       }
     }
-    return localData.length > 0 ? localData : INITIAL_PRESENSI;
+    return localData;
   }
 
   async addPresensi(record) {
@@ -491,7 +518,7 @@ class DataService {
     };
 
     let docId = 'pres_' + Date.now();
-    if (this.isFirebaseReady) {
+    if (this.isFirebaseReady && this.db) {
       try {
         const docRef = await this.db.collection('presensi').add({
           ...record,
@@ -511,6 +538,7 @@ class DataService {
       list = list.filter(p => p.id !== docId);
       list.unshift(payload);
       localStorage.setItem('presensi_absen_records', JSON.stringify(list));
+      localStorage.setItem('presensi_cloud_presensi_seeded', 'true');
       this.notifyLocalSync();
     } catch (e) {
       console.warn("Gagal simpan presensi ke LocalStorage:", e);
@@ -519,20 +547,40 @@ class DataService {
   }
 
   async deletePresensi(id) {
-    if (this.isFirebaseReady) {
-      try {
-        await this.db.collection('presensi').doc(id).delete();
-      } catch (err) {
-        console.warn("Firestore error saat deletePresensi:", err);
-      }
-    }
+    // 1. Eksekusi Hapus dari LocalStorage terlebih dahulu (Instan & Pasti)
     try {
       const stored = localStorage.getItem('presensi_absen_records');
       let list = stored ? JSON.parse(stored) : [];
       list = list.filter(p => p.id !== id);
       localStorage.setItem('presensi_absen_records', JSON.stringify(list));
       this.notifyLocalSync();
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Error update local presensi_absen_records saat deletePresensi:", e);
+    }
+
+    // 2. Eksekusi Hapus dari Cloud Firestore
+    if (this.isFirebaseReady && this.db) {
+      try {
+        await this.db.collection('presensi').doc(id).delete().catch(() => {});
+
+        const snap = await this.db.collection('presensi').get();
+        if (!snap.empty) {
+          const deletePromises = [];
+          snap.forEach(doc => {
+            const d = doc.data();
+            if (doc.id === id || (d && d.id === id)) {
+              deletePromises.push(doc.ref.delete().catch(() => {}));
+            }
+          });
+          if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+          }
+        }
+      } catch (err) {
+        console.warn("Firestore error saat deletePresensi:", err);
+      }
+    }
+
     return true;
   }
 

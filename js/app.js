@@ -1094,10 +1094,13 @@ window.deletePresensiItem = async function(id) {
   });
 
   if (confirm.isConfirmed) {
-    await window.dbService.deletePresensi(id);
-    AppState.presensiList = await window.dbService.getPresensi();
+    // Optimistic UI Update: langsung hilangkan dari tabel & dashboard
+    AppState.presensiList = AppState.presensiList.filter(p => p.id !== id);
     renderPresensiTable();
     updateDashboardStats();
+
+    await window.dbService.deletePresensi(id);
+    await loadMasterData();
     Swal.fire({
       icon: 'success',
       title: 'Data Berhasil Dihapus',
@@ -2010,11 +2013,11 @@ function exportPersonalExcel(records) {
 
 window.deleteDosenItem = async function(id) {
   const d = AppState.dosenList.find(item => item.id === id);
-  if (!d) return;
+  const dosenName = d ? d.nama : 'Dosen ini';
 
   const confirm = await Swal.fire({
     title: 'Hapus Dosen?',
-    text: `Yakin ingin menghapus dosen "${d.nama}" dari sistem?`,
+    text: `Yakin ingin menghapus dosen "${dosenName}" dari sistem?`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
@@ -2023,13 +2026,43 @@ window.deleteDosenItem = async function(id) {
   });
 
   if (confirm.isConfirmed) {
-    await window.dbService.deleteDosen(id);
+    // 1. Optimistic UI Update: Langsung bersihkan dari state tampilan secara instan
+    AppState.dosenList = AppState.dosenList.filter(item => {
+      if (item.id === id) return false;
+      if (d) {
+        if (d.username && item.username && item.username.trim().toLowerCase() === d.username.trim().toLowerCase()) return false;
+        if (d.nama && item.nama && item.nama.trim().toLowerCase() === d.nama.trim().toLowerCase()) return false;
+      }
+      return true;
+    });
+    renderDosenTable();
+    populateDosenDropdown();
+    updateDashboardStats();
+
+    // 2. Eksekusi database & storage
+    await window.dbService.deleteDosen(id, d);
+
+    // 3. Pastikan data master reload tersinkronisasi
     await loadMasterData();
+
+    // 4. Jika user dosen yang sedang login dihapus, logout otomatis
+    if (AppState.currentUser && AppState.currentUser.role === "dosen" && (AppState.currentUser.dosenId === id || (d && AppState.currentUser.username === d.username))) {
+      sessionStorage.removeItem("presensi_user_session");
+      AppState.currentUser = null;
+      updateAuthUI();
+      showView("view-login");
+      Swal.fire({
+        icon: 'info',
+        title: 'Akun Dosen Dihapus',
+        text: 'Akun dosen yang Anda gunakan saat ini telah dihapus oleh administrator.'
+      });
+      return;
+    }
+
     Swal.fire({ icon: 'success', title: 'Dosen Berhasil Dihapus', timer: 1500, showConfirmButton: false });
   }
 };
 
-// ================= KELOLA MASTER DATA MATA KULIAH =================
 // ================= KELOLA MASTER DATA MATA KULIAH =================
 function renderMatkulTable() {
   const tbody = document.getElementById("table-matkul-body");
@@ -2189,11 +2222,11 @@ window.openEditMatkulModal = async function(id) {
 
 window.deleteMatkulItem = async function(id) {
   const m = AppState.matkulList.find(item => item.id === id);
-  if (!m) return;
+  const matkulName = m ? m.nama : 'Mata Kuliah ini';
 
   const confirm = await Swal.fire({
     title: 'Hapus Mata Kuliah?',
-    text: `Yakin ingin menghapus "${m.nama}"?`,
+    text: `Yakin ingin menghapus "${matkulName}"?`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
@@ -2202,7 +2235,22 @@ window.deleteMatkulItem = async function(id) {
   });
 
   if (confirm.isConfirmed) {
-    await window.dbService.deleteMatkul(id);
+    // 1. Optimistic UI Update
+    AppState.matkulList = AppState.matkulList.filter(item => {
+      if (item.id === id) return false;
+      if (m) {
+        if (m.nama && item.nama && item.nama.trim().toLowerCase() === m.nama.trim().toLowerCase()) return false;
+        if (m.kode && item.kode && item.kode.trim().toLowerCase() === m.kode.trim().toLowerCase()) return false;
+      }
+      return true;
+    });
+    renderMatkulTable();
+    populateMatkulDropdown();
+
+    // 2. Eksekusi database & storage
+    await window.dbService.deleteMatkul(id, m);
+
+    // 3. Reload master data
     await loadMasterData();
     Swal.fire({ icon: 'success', title: 'Mata Kuliah Berhasil Dihapus', timer: 1500, showConfirmButton: false });
   }
