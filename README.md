@@ -46,13 +46,19 @@ Aplikasi web modern, responsif, dan elegan untuk pencatatan berita acara dan pre
 
 ## 🔐 Akun Login Demo untuk Pengujian Cepat
 
-Halaman login portal mendukung login untuk **Admin** maupun **Dosen**:
+Halaman login portal mendukung login bertingkat (*multi-role*):
 
-### 1. Akun Admin (Untuk Mengelola Sistem & Buat Akun Dosen):
-- **Email / Username**: `admin@kampus.ac.id`
+### 1. Akun Super Admin (Akses Penuh termasuk Konfigurasi Firebase API Key):
+- **Email / Username**: `admin@kampus.ac.id` (atau `superadmin` / `admin`)
 - **Password**: `admin123`
+- **Hak Akses**: Mengelola seluruh sistem, Dashboard, Monitoring & Rekap Presensi, Kelola Dosen & Akun User, Kelola Mata Kuliah, serta **Akses Penuh mengubah Firebase API Key & Project ID**.
 
-### 2. Akun Dosen Contoh (Untuk Mengisi Absen Mandiri):
+### 2. Akun Admin Khusus Bagian Akademik / BAAK (Input & Kelola Data, Tanpa API Key):
+- **Email / Username**: `akademik@kampus.ac.id` (atau `akademik` / `baak`)
+- **Password**: `akademik123`
+- **Hak Akses**: Menginput data presensi mengajar dosen, memantau kehadiran, mengunduh rekap & mencetak laporan, mengelola dosen & mata kuliah. **Menu dan hak akses Konfigurasi Firebase disembunyikan & dikunci demi keamanan sistem**.
+
+### 3. Akun Dosen Contoh (Untuk Mengisi Absen Mandiri):
 - **Dosen 1**: `hendra` / `dosen123` (Dr. Hendra Wijaya, S.E., M.Ak.)
 - **Dosen 2**: `siti` / `dosen123` (Siti Rahmawati, S.E., M.M.)
 - **Dosen 3**: `budi` / `dosen123` (Budi Santoso, S.Kom., M.M.S.I.)

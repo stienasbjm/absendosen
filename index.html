@@ -300,12 +300,12 @@
       <aside class="admin-sidebar">
         <div class="sidebar-header">
           <div class="sidebar-user">
-            <div class="sidebar-avatar">
+            <div class="sidebar-avatar" id="admin-user-avatar">
               <i class="fa-solid fa-user-shield"></i>
             </div>
             <div>
-              <div style="font-weight:700; font-size:0.95rem; color:#fff;">Admin Akademik</div>
-              <div style="font-size:0.75rem; color:#94a3b8;">Super Administrator</div>
+              <div id="admin-user-display-name" style="font-weight:700; font-size:0.95rem; color:#fff;">Admin Akademik</div>
+              <div id="admin-user-display-role" style="font-size:0.75rem; color:#94a3b8;">Super Administrator</div>
             </div>
           </div>
         </div>
@@ -321,7 +321,11 @@
             <span>Monitoring Presensi</span>
           </a>
 
-          <div class="nav-section-title">Master Data</div>
+          <div class="nav-section-title">Input & Master Data</div>
+          <a href="#" class="sidebar-link" onclick="showView('view-form-absen'); return false;" style="color:#60a5fa; font-weight:700;">
+            <i class="fa-solid fa-file-circle-plus"></i>
+            <span>Input Presensi Dosen</span>
+          </a>
           <a href="#" class="sidebar-link" data-tab="tab-dosen">
             <i class="fa-solid fa-users-gear"></i>
             <span>Kelola Dosen</span>
@@ -331,14 +335,10 @@
             <span>Kelola Mata Kuliah</span>
           </a>
 
-          <div class="nav-section-title">Pengaturan</div>
-          <a href="#" class="sidebar-link" data-tab="tab-firebase">
+          <div id="sidebar-section-pengaturan" class="nav-section-title">Pengaturan Sistem</div>
+          <a href="#" id="sidebar-link-firebase" class="sidebar-link" data-tab="tab-firebase">
             <i class="fa-solid fa-fire"></i>
             <span>Konfigurasi Firebase</span>
-          </a>
-          <a href="#" class="sidebar-link" onclick="showView('view-form-absen'); return false;">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            <span>Lihat Form Presensi</span>
           </a>
         </nav>
 
@@ -377,9 +377,14 @@
               <h2 class="page-title">Ringkasan & Statistik Presensi</h2>
               <p class="page-subtitle">Pantau aktivitas pengajaran dosen secara langsung</p>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="switchAdminTab('tab-monitoring')">
-              <i class="fa-solid fa-list-check"></i> Buka Monitoring Presensi
-            </button>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button class="btn btn-outline-primary btn-sm" onclick="showView('view-form-absen')">
+                <i class="fa-solid fa-file-circle-plus"></i> Input Presensi Baru
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="switchAdminTab('tab-monitoring')">
+                <i class="fa-solid fa-list-check"></i> Buka Monitoring Presensi
+              </button>
+            </div>
           </div>
 
           <!-- Stat Cards -->
@@ -458,8 +463,11 @@
               <h2 class="page-title">Monitoring Presensi Mengajar Dosen</h2>
               <p class="page-subtitle">Pencatatan real-time, filter terperinci, dan pengunduhan rekaman absensi</p>
             </div>
-            <!-- Tombol Ekspor & Cetak -->
+            <!-- Tombol Input, Ekspor & Cetak -->
             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="showView('view-form-absen')">
+                <i class="fa-solid fa-file-circle-plus"></i> Input Presensi Baru
+              </button>
               <button id="btn-export-excel" class="btn btn-success btn-sm">
                 <i class="fa-solid fa-file-excel"></i> Unduh Excel (.xlsx)
               </button>

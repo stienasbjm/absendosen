@@ -57,7 +57,7 @@ function checkAuthSession() {
     try {
       AppState.currentUser = JSON.parse(session);
       updateAuthUI();
-      if (AppState.currentUser.role === "admin") {
+      if (AppState.currentUser.role === "admin" || AppState.currentUser.role === "superadmin" || AppState.currentUser.role === "admin_akademik") {
         showView("view-admin-dashboard");
       } else if (AppState.currentUser.role === "dosen") {
         showView("view-form-absen");
@@ -81,19 +81,48 @@ function updateAuthUI() {
   const formDosen = document.getElementById("form-dosen");
   const lockedNotice = document.getElementById("locked-dosen-notice");
 
+  // Elemen Sidebar Admin
+  const adminName = document.getElementById("admin-user-display-name");
+  const adminRole = document.getElementById("admin-user-display-role");
+  const adminAvatar = document.getElementById("admin-user-avatar");
+  const sidebarSectionPengaturan = document.getElementById("sidebar-section-pengaturan");
+  const sidebarLinkFirebase = document.getElementById("sidebar-link-firebase");
+
   if (AppState.currentUser) {
-    if (AppState.currentUser.role === "admin") {
+    const isSuperAdmin = AppState.currentUser.role === "superadmin" || AppState.currentUser.role === "admin";
+    const isAdminAkademik = AppState.currentUser.role === "admin_akademik";
+
+    if (isSuperAdmin || isAdminAkademik) {
       if (promptBanner) promptBanner.style.display = "none";
       if (loggedBanner) {
         loggedBanner.style.display = "flex";
-        document.getElementById("logged-dosen-nama").textContent = AppState.currentUser.name || "Administrator";
-        document.getElementById("logged-dosen-nip").textContent = "Super Admin";
+        document.getElementById("logged-dosen-nama").textContent = AppState.currentUser.name || (isSuperAdmin ? "Super Administrator" : "Admin Akademik");
+        document.getElementById("logged-dosen-nip").textContent = isSuperAdmin ? "Super Admin" : "Bagian Akademik (BAAK)";
       }
       if (formDosen) {
         formDosen.disabled = false;
         formDosen.classList.remove("locked-input");
       }
       if (lockedNotice) lockedNotice.style.display = "none";
+
+      // Pengaturan Identitas Profil di Sidebar
+      if (adminName) {
+        adminName.textContent = isSuperAdmin ? "Super Administrator" : "Admin Akademik";
+      }
+      if (adminRole) {
+        adminRole.textContent = isSuperAdmin ? "Full Access (Firebase Master)" : "Pengelola Data Akademik (BAAK)";
+      }
+      if (adminAvatar) {
+        adminAvatar.innerHTML = isSuperAdmin ? `<i class="fa-solid fa-shield-halved"></i>` : `<i class="fa-solid fa-user-pen"></i>`;
+      }
+
+      // KONTROL AKSES: Sembunyikan Konfigurasi Firebase untuk Admin Akademik
+      if (sidebarLinkFirebase) {
+        sidebarLinkFirebase.style.display = isSuperAdmin ? "flex" : "none";
+      }
+      if (sidebarSectionPengaturan) {
+        sidebarSectionPengaturan.style.display = isSuperAdmin ? "block" : "none";
+      }
     } else if (AppState.currentUser.role === "dosen") {
       if (promptBanner) promptBanner.style.display = "none";
       if (loggedBanner) {
@@ -345,6 +374,17 @@ function showAdminNavbarState(isLoggedIn) {
 
 // Tab Switching di Admin
 function switchAdminTab(tabId) {
+  // Proteksi hak akses: Admin Akademik dilarang mengakses tab-firebase
+  if (tabId === "tab-firebase" && AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Akses Dibatasi',
+      html: 'Menu <strong>Konfigurasi Firebase (API Key)</strong> hanya dapat diakses oleh <strong>Super Administrator</strong>.<br><small style="color:#64748b">Akun Admin Akademik hanya berwenang untuk menginput dan mengelola data presensi, dosen, dan mata kuliah.</small>',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
   document.querySelectorAll(".sidebar-link").forEach(l => l.classList.remove("active"));
   const activeLink = document.querySelector(`.sidebar-link[data-tab="${tabId}"]`);
   if (activeLink) activeLink.classList.add("active");
@@ -544,13 +584,19 @@ function handleAdminLogin(e) {
 
   const cleanInput = inputUser.toLowerCase();
 
-  // 1. Cek apakah ini akun Admin (admin@kampus.ac.id / admin123)
-  if ((cleanInput === "admin@kampus.ac.id" || cleanInput === "admin") && pass === "admin123") {
-    loginWithDemoSession();
+  // 1. Cek apakah ini akun Super Admin (admin@kampus.ac.id / admin123 atau superadmin / admin123)
+  if ((cleanInput === "admin@kampus.ac.id" || cleanInput === "admin" || cleanInput === "superadmin") && pass === "admin123") {
+    loginWithSuperAdminSession();
     return;
   }
 
-  // 2. Cek apakah ini akun User Dosen di Master Data Dosen
+  // 2. Cek apakah ini akun Admin Khusus Bagian Akademik (akademik@kampus.ac.id / akademik123 atau akademik / akademik123)
+  if ((cleanInput === "akademik@kampus.ac.id" || cleanInput === "akademik" || cleanInput === "baak") && pass === "akademik123") {
+    loginWithAkademikSession();
+    return;
+  }
+
+  // 3. Cek apakah ini akun User Dosen di Master Data Dosen
   const dosenMatch = AppState.dosenList.find(d => 
     (d.username?.toLowerCase() === cleanInput || d.email?.toLowerCase() === cleanInput) &&
     (d.password === pass)
@@ -578,7 +624,7 @@ function handleAdminLogin(e) {
     return;
   }
 
-  // 3. Jika Firebase Auth aktif, coba verifikasi ke Firebase Auth
+  // 4. Jika Firebase Auth aktif, coba verifikasi ke Firebase Auth
   if (window.dbService.isFirebaseReady && window.dbService.auth && cleanInput.includes('@')) {
     Swal.fire({
       title: 'Memverifikasi Akun...',
@@ -589,7 +635,7 @@ function handleAdminLogin(e) {
     window.dbService.auth.signInWithEmailAndPassword(inputUser, pass)
       .then((userCredential) => {
         const user = userCredential.user;
-        AppState.currentUser = { email: user.email, uid: user.uid, role: "admin" };
+        AppState.currentUser = { email: user.email, uid: user.uid, role: "superadmin", name: user.email };
         sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
         updateAuthUI();
         Swal.fire({
@@ -606,7 +652,7 @@ function handleAdminLogin(e) {
         Swal.fire({
           icon: 'error',
           title: 'Login Gagal',
-          html: 'Username/Email atau password salah!<br><small style="color:#64748b">Pastikan akun Anda sudah didaftarkan oleh admin di menu Kelola Dosen.</small>'
+          html: 'Username/Email atau password salah!<br><small style="color:#64748b">Pastikan akun Anda sudah terdaftar dalam sistem.</small>'
         });
       });
     return;
@@ -616,18 +662,46 @@ function handleAdminLogin(e) {
   Swal.fire({
     icon: 'error',
     title: 'Login Gagal',
-    html: 'Username/Email atau password tidak cocok!<br><small style="color:#64748b">Dosen: Gunakan akun yang dibuatkan admin (misal: <code>hendra</code> / <code>dosen123</code>).<br>Admin: <code>admin@kampus.ac.id</code> / <code>admin123</code></small>'
+    html: 'Username/Email atau password tidak cocok!<br><small style="color:#64748b">Admin Akademik: <code>akademik@kampus.ac.id</code> / <code>akademik123</code><br>Super Admin: <code>admin@kampus.ac.id</code> / <code>admin123</code><br>Dosen: Gunakan akun yang dibuatkan admin (misal: <code>hendra</code> / <code>dosen123</code>)</small>'
   });
 }
 
-function loginWithDemoSession() {
-  AppState.currentUser = { email: "admin@kampus.ac.id", role: "admin", name: "Administrator Kampus" };
+function loginWithSuperAdminSession() {
+  AppState.currentUser = { 
+    email: "admin@kampus.ac.id", 
+    role: "superadmin", 
+    name: "Super Administrator", 
+    title: "Super Admin",
+    canManageFirebase: true 
+  };
   sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
   updateAuthUI();
   Swal.fire({
     icon: 'success',
-    title: 'Login Berhasil (Akun Admin)',
-    timer: 1200,
+    title: 'Login Super Admin Berhasil',
+    html: 'Selamat datang, <strong>Super Administrator</strong>.<br><small style="color:#64748b">Hak akses penuh aktif termasuk Konfigurasi Firebase API Key.</small>',
+    timer: 1400,
+    showConfirmButton: false
+  });
+  showView("view-admin-dashboard");
+  switchAdminTab("tab-dashboard");
+}
+
+function loginWithAkademikSession() {
+  AppState.currentUser = { 
+    email: "akademik@kampus.ac.id", 
+    role: "admin_akademik", 
+    name: "Admin Bagian Akademik", 
+    title: "Admin Akademik (BAAK)",
+    canManageFirebase: false 
+  };
+  sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
+  updateAuthUI();
+  Swal.fire({
+    icon: 'success',
+    title: 'Login Admin Akademik Berhasil',
+    html: 'Selamat datang, <strong>Admin Akademik (BAAK)</strong>.<br><small style="color:#64748b">Hak akses input presensi, data dosen, dan mata kuliah aktif. Menu Firebase API Key dikunci untuk keamanan sistem.</small>',
+    timer: 1800,
     showConfirmButton: false
   });
   showView("view-admin-dashboard");
@@ -1949,6 +2023,17 @@ function loadFirebaseConfigIntoForm() {
 
 function handleFirebaseConfigSave(e) {
   e.preventDefault();
+
+  // Proteksi hak akses: Admin Akademik dilarang mengubah API Key Firebase
+  if (AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
+    Swal.fire({
+      icon: 'error',
+      title: 'Aksi Ditolak',
+      html: 'Admin Akademik <strong>tidak memiliki hak akses</strong> untuk mengubah konfigurasi Firebase API Key!<br><small style="color:#64748b">Hanya Super Administrator yang berhak mengatur koneksi basis data cloud.</small>'
+    });
+    return;
+  }
+
   const config = {
     apiKey: document.getElementById("fb-apiKey").value.trim(),
     authDomain: document.getElementById("fb-authDomain").value.trim(),
@@ -1979,6 +2064,16 @@ function handleFirebaseConfigSave(e) {
 }
 
 function handleResetConfig() {
+  // Proteksi hak akses
+  if (AppState.currentUser && AppState.currentUser.role === "admin_akademik") {
+    Swal.fire({
+      icon: 'error',
+      title: 'Aksi Ditolak',
+      text: 'Admin Akademik tidak memiliki wewenang untuk mereset konfigurasi Firebase!'
+    });
+    return;
+  }
+
   Swal.fire({
     title: 'Reset Konfigurasi Firebase?',
     text: 'Aplikasi akan kembali ke mode lokal bawaan (Local Storage).',
