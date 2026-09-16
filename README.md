@@ -1,6 +1,6 @@
-# WebApp Presensi Mengajar Dosen (Firebase + Google Sites Ready)
+# WebApp Presensi Mengajar Dosen (Firebase + Github Pages Ready)
 
-Aplikasi web modern, responsif, dan elegan untuk pencatatan berita acara dan presensi mengajar dosen, dirancang khusus agar mudah disematkan (*embedded*) ke dalam **Google Sites**.
+Aplikasi web modern, responsif, dan elegan untuk pencatatan berita acara dan presensi mengajar dosen, dirancang khusus agar mudah disematkan (*embedded*) ke dalam **Github Pages**.
 
 ---
 
@@ -67,13 +67,13 @@ Halaman login portal mendukung login bertingkat (*multi-role*):
 
 ---
 
-## 🌐 Panduan Memasukkan ke Google Sites (Embed)
+## 🌐 Panduan Memasukkan ke Github Pages (Embed)
 
-Ada 2 cara mudah untuk menampilkan webapp ini pada Google Sites:
+Ada 2 cara mudah untuk menampilkan webapp ini pada Github Pages:
 
 ### Metode 1: Host Webapp lalu Sematkan via URL (Direkomendasikan)
 1. Unggah berkas proyek ini ke hosting gratis seperti **Firebase Hosting**, **GitHub Pages**, **Vercel**, atau **Netlify**.
-2. Buka editor **Google Sites** Anda.
+2. Buka editor **Github Pages** Anda.
 3. Di panel sebelah kanan, klik menu **Sematkan** (*Embed*).
 4. Pilih tab **Menurut URL** (*By URL*).
 5. Masukkan link website hasil hosting Anda (misal: `https://presensi-dosen.web.app`).
