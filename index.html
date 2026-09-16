@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   
   <!-- Custom Style -->
-  <link rel="stylesheet" href="css/style.css?v=20260916c">
+  <link rel="stylesheet" href="css/style.css?v=20260916d">
 </head>
 <body>
 
@@ -29,7 +29,10 @@
         <div class="form-header-banner">
           <div class="form-header-content" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
             <div>
-              <span class="badge-tag"><i class="fa-solid fa-book-open-reader"></i> Formulir Resmi Perkuliahan</span>
+              <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.5rem;">
+                <img src="img/logo-stienas.png" alt="Logo STIE Nasional Banjarmasin" style="width:38px; height:auto; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));">
+                <span class="badge-tag" style="margin:0;"><i class="fa-solid fa-building-columns"></i> STIE Nasional Banjarmasin</span>
+              </div>
               <h1 class="form-header-title">Presensi Mengajar Dosen</h1>
               <p class="form-header-desc">
                 Silakan lengkapi catatan kehadiran dan berita acara perkuliahan Anda di bawah ini secara seksama sebelum mengakhiri sesi pengajaran.
@@ -244,19 +247,25 @@
           </div>
         </form>
       </div>
+      <!-- Footer Form Absensi -->
+      <footer style="text-align:center; margin-top:1.5rem; padding-bottom:1rem; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
+        <div style="font-weight:600; color:#334155;">&copy; 2026 STIE Nasional Banjarmasin. Hak Cipta Dilindungi.</div>
+        <div style="margin-top:0.25rem; font-size:0.78rem; color:#64748b;">
+          Dibuat oleh <strong style="color:var(--primary);">Lab Terpadu STIE Nasional Banjarmasin</strong>
+        </div>
+      </footer>
     </div>
   </main>
 
   <!-- ================= VIEW 2: LOGIN PORTAL (ADMIN & DOSEN) ================= -->
   <section id="view-login" class="view-section active">
     <div class="login-container">
-      <!-- Branding Logo & Header -->
-      <div style="text-align:center; margin-bottom:1.15rem;">
-        <div class="logo-icon" style="width:48px; height:48px; font-size:1.45rem; margin:0 auto 0.5rem auto;">
-          <i class="fa-solid fa-graduation-cap"></i>
-        </div>
-        <h1 style="font-size:1.45rem; font-weight:800; color:var(--dark); letter-spacing:-0.02em; margin:0;">Portal Presensi Dosen</h1>
-        <div style="font-size:0.8rem; color:var(--text-muted); font-weight:500; margin-top:0.2rem;" id="login-current-time">Memuat waktu...</div>
+      <!-- Branding Logo & Header STIE Nasional Banjarmasin -->
+      <div style="text-align:center; margin-bottom:1.35rem;">
+        <img src="img/logo-stienas.png" alt="Logo STIE Nasional Banjarmasin" style="width:85px; height:auto; display:block; margin:0 auto 0.75rem auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));">
+        <h1 style="font-size:1.3rem; font-weight:800; color:var(--dark); letter-spacing:0.02em; margin:0; text-transform:uppercase;">STIE NASIONAL BANJARMASIN</h1>
+        <div style="font-size:0.875rem; color:var(--primary); font-weight:700; margin-top:0.25rem;">Sistem Informasi Presensi Mengajar Dosen</div>
+        <div style="font-size:0.78rem; color:var(--text-muted); font-weight:500; margin-top:0.25rem;" id="login-current-time">Memuat waktu...</div>
       </div>
 
       <div class="login-card">
@@ -265,7 +274,7 @@
             <i class="fa-solid fa-shield-halved"></i>
           </div>
           <h2 class="login-title">Masuk ke Sistem</h2>
-          <p class="login-desc">Silakan login sebagai Dosen untuk mengisi absensi atau sebagai Admin untuk mengelola sistem.</p>
+          <p class="login-desc">Aplikasi Presensi Mengajar Dosen STIE Nasional Banjarmasin. Silakan masuk sebagai Dosen atau Bagian Akademik.</p>
         </div>
 
         <form id="form-login" class="login-body">
@@ -290,6 +299,14 @@
           </button>
         </form>
       </div>
+
+      <!-- Footer Halaman Login -->
+      <footer style="text-align:center; margin-top:1.5rem; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
+        <div style="font-weight:600; color:#334155;">&copy; 2026 STIE Nasional Banjarmasin. Hak Cipta Dilindungi.</div>
+        <div style="margin-top:0.25rem; font-size:0.78rem; color:#64748b;">
+          Dibuat oleh <strong style="color:var(--primary);">Lab Terpadu STIE Nasional Banjarmasin</strong>
+        </div>
+      </footer>
     </div>
   </section>
 
@@ -299,6 +316,13 @@
       <!-- Sidebar Menu Khusus Admin -->
       <aside class="admin-sidebar">
         <div class="sidebar-header">
+          <div style="display:flex; align-items:center; gap:0.65rem; padding-bottom:0.75rem; margin-bottom:0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">
+            <img src="img/logo-stienas.png" alt="Logo STIE Nas" style="width:36px; height:auto; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+            <div>
+              <div style="font-weight:800; font-size:0.85rem; color:#fff; letter-spacing:0.03em;">STIE NASIONAL</div>
+              <div style="font-size:0.7rem; color:#94a3b8;">Banjarmasin</div>
+            </div>
+          </div>
           <div class="sidebar-user">
             <div class="sidebar-avatar" id="admin-user-avatar">
               <i class="fa-solid fa-user-shield"></i>
@@ -346,6 +370,10 @@
           <button id="btn-sidebar-logout" class="btn btn-danger btn-sm" style="width: 100%;">
             <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
           </button>
+          <div style="font-size:0.7rem; color:#64748b; text-align:center; margin-top:0.65rem; line-height:1.4;">
+            &copy; 2026 STIE Nas Banjarmasin<br>
+            Dibuat oleh <strong style="color:#94a3b8;">Lab Terpadu</strong>
+          </div>
         </div>
       </aside>
 
@@ -696,6 +724,13 @@
           </div>
         </div>
 
+        <!-- Admin Dashboard Footer -->
+        <footer style="margin-top:2.5rem; padding:1.25rem 0; border-top:1px solid var(--border); text-align:center; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
+          <div style="font-weight:600; color:#334155;">&copy; 2026 STIE Nasional Banjarmasin. Hak Cipta Dilindungi.</div>
+          <div style="margin-top:0.25rem; font-size:0.78rem; color:#64748b;">
+            Dibuat oleh <strong style="color:var(--primary);">Lab Terpadu STIE Nasional Banjarmasin</strong>
+          </div>
+        </footer>
       </main>
     </div>
   </section>
@@ -798,7 +833,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="js/firebase-config.js?v=20260916c"></script>
-  <script src="js/app.js?v=20260916c"></script>
+  <script src="js/firebase-config.js?v=20260916d"></script>
+  <script src="js/app.js?v=20260916d"></script>
 </body>
 </html>

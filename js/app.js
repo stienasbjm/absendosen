@@ -1211,13 +1211,13 @@ function renderRekapLaporanBulanan() {
   let html = `
     <!-- KOP SURAT / HEADER RESMI -->
     <div class="kop-surat">
-      <div class="kop-logo">
-        <i class="fa-solid fa-graduation-cap"></i>
+      <div class="kop-logo" style="background:transparent; border:none; box-shadow:none; width:auto; height:auto;">
+        <img src="img/logo-stienas.png" alt="Logo STIE Nas" style="width:56px; height:auto; display:block;">
       </div>
       <div class="kop-text">
-        <div class="kop-instansi">SISTEM INFORMASI AKADEMIK PERGURUAN TINGGI</div>
+        <div class="kop-instansi">STIE NASIONAL BANJARMASIN</div>
         <div class="kop-subinstansi">BAGIAN ADMINISTRASI AKADEMIK &amp; KEMAHASISWAAN (BAAK)</div>
-        <div class="kop-alamat">Laporan Akuntabilitas Kinerja Pengajaran Dosen Terverifikasi Sistem</div>
+        <div class="kop-alamat">Laporan Akuntabilitas Kinerja Pengajaran Dosen &bull; Lab Terpadu STIE Nas</div>
       </div>
     </div>
 
@@ -1381,7 +1381,7 @@ function renderRekapLaporanBulanan() {
         <div>Dicetak pada: ${tglCetak}</div>
         <div style="font-weight:700; margin-top:0.2rem;">Bagian Administrasi Akademik</div>
         <div class="ttd-line">( ${escapeHtml(AppState.currentUser?.name || 'Administrator Akademik')} )</div>
-        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">SIAKAD Presensi Mengajar Dosen</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">STIE Nasional Banjarmasin &bull; Lab Terpadu</div>
       </div>
     </div>
   `;
