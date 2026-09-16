@@ -260,8 +260,6 @@ function setupEventListeners() {
 
   // Login Form
   document.getElementById("form-login")?.addEventListener("submit", handleAdminLogin);
-  document.getElementById("btn-demo-login")?.addEventListener("click", fillDemoLogin);
-  document.getElementById("btn-demo-login-dosen")?.addEventListener("click", fillDemoLoginDosen);
   document.getElementById("btn-logout")?.addEventListener("click", handleLogout);
   document.getElementById("btn-sidebar-logout")?.addEventListener("click", handleLogout);
 
@@ -636,31 +634,6 @@ function loginWithDemoSession() {
   switchAdminTab("tab-dashboard");
 }
 
-function fillDemoLogin() {
-  document.getElementById("login-email").value = "admin@kampus.ac.id";
-  document.getElementById("login-password").value = "admin123";
-  Swal.fire({
-    toast: true,
-    position: 'top-end',
-    icon: 'info',
-    title: 'Akun demo admin telah diisikan',
-    showConfirmButton: false,
-    timer: 2000
-  });
-}
-
-function fillDemoLoginDosen() {
-  document.getElementById("login-email").value = "hendra";
-  document.getElementById("login-password").value = "dosen123";
-  Swal.fire({
-    toast: true,
-    position: 'top-end',
-    icon: 'info',
-    title: 'Akun demo dosen (Dr. Hendra) telah diisikan',
-    showConfirmButton: false,
-    timer: 2000
-  });
-}
 
 function handleLogout() {
   Swal.fire({

@@ -604,17 +604,6 @@ textarea.form-control {
   gap: 1.1rem;
 }
 
-.demo-account-hint {
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-  border-radius: var(--radius-sm);
-  padding: 0.85rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
 /* ================= Admin Layout with Sidebar ================= */
 .admin-layout {

@@ -51,10 +51,9 @@ Halaman login portal mendukung login untuk **Admin** maupun **Dosen**:
 ### 1. Akun Admin (Untuk Mengelola Sistem & Buat Akun Dosen):
 - **Email / Username**: `admin@kampus.ac.id`
 - **Password**: `admin123`
-- *(Tersedia tombol pintas **"Demo Admin"** di halaman login)*.
 
 ### 2. Akun Dosen Contoh (Untuk Mengisi Absen Mandiri):
-- **Dosen 1**: `hendra` / `dosen123` (Dr. Hendra Wijaya, S.E., M.Ak.) *(Tersedia tombol pintas **"Demo Dosen"**)*
+- **Dosen 1**: `hendra` / `dosen123` (Dr. Hendra Wijaya, S.E., M.Ak.)
 - **Dosen 2**: `siti` / `dosen123` (Siti Rahmawati, S.E., M.M.)
 - **Dosen 3**: `budi` / `dosen123` (Budi Santoso, S.Kom., M.M.S.I.)
 - **Dosen 4**: `agus` / `dosen123` (Prof. Dr. Ir. Agus Pratama, M.B.A.)
