@@ -144,7 +144,7 @@ function updateAuthUI() {
         loggedBanner.style.display = "flex";
         if (roleLabel) roleLabel.textContent = "Login sebagai Dosen:";
         document.getElementById("logged-dosen-nama").textContent = AppState.currentUser.nama;
-        document.getElementById("logged-dosen-nip").textContent = `NIDN: ${AppState.currentUser.nip || '-'}`;
+        document.getElementById("logged-dosen-nip").textContent = `NUPTK / NIP: ${AppState.currentUser.nip || '-'}`;
       }
       if (btnDashboard) btnDashboard.style.display = "none";
       if (btnRiwayat) btnRiwayat.style.display = "inline-flex";
@@ -1446,7 +1446,7 @@ function renderRekapLaporanBulanan() {
           <thead>
             <tr>
               <th style="text-align:center; width:35px;">No</th>
-              <th>Nama Dosen &amp; NIDN</th>
+              <th>Nama Dosen &amp; NUPTK / NIP</th>
               <th>Mata Kuliah Diampu</th>
               <th style="text-align:center;">Kelas</th>
               <th style="text-align:center; width:90px;">Jml Pertemuan</th>
@@ -1461,7 +1461,7 @@ function renderRekapLaporanBulanan() {
                 <td style="text-align:center; font-weight:600;">${idx + 1}</td>
                 <td>
                   <strong>${escapeHtml(item.dosenNama)}</strong>
-                  <div style="font-size:0.72rem; color:#64748b;">NIDN: ${escapeHtml(item.nip || '-')} | ${item.status}</div>
+                  <div style="font-size:0.72rem; color:#64748b;">NUPTK / NIP: ${escapeHtml(item.nip || '-')} | ${item.status}</div>
                 </td>
                 <td>${escapeHtml(item.matkulNama)}</td>
                 <td style="text-align:center;">
@@ -1551,7 +1551,7 @@ function renderRekapLaporanBulanan() {
         <div>Mengetahui,</div>
         <div style="font-weight:700; margin-top:0.2rem;">Ketua Program Studi</div>
         <div class="ttd-line">( .................................................... )</div>
-        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">NIDN. .........................................</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">NUPTK / NIP. .........................................</div>
       </div>
 
       <div class="ttd-box">
@@ -1605,7 +1605,7 @@ function exportRekapExcelBulanan() {
         const masterDsn = AppState.dosenList.find(d => d.nama === r.dosenNama);
         dosenAgregat[key] = {
           "Nama Dosen": r.dosenNama,
-          "NIDN": masterDsn ? masterDsn.nip : "-",
+          "NUPTK / NIP": masterDsn ? masterDsn.nip : "-",
           "Mata Kuliah": r.matkulNama,
           "Kelas": r.kelas,
           "Keterangan Kelas": r.kelasLabel || KELAS_MAP[r.kelas] || r.kelas,
@@ -1626,7 +1626,7 @@ function exportRekapExcelBulanan() {
     const sheetRekapData = Object.values(dosenAgregat).map((item, idx) => ({
       "No": idx + 1,
       "Nama Dosen": item["Nama Dosen"],
-      "NIDN": item["NIDN"],
+      "NUPTK / NIP": item["NUPTK / NIP"],
       "Mata Kuliah": item["Mata Kuliah"],
       "Kelas": item["Kelas"],
       "Keterangan Kelas": item["Keterangan Kelas"],
@@ -1747,7 +1747,7 @@ async function openAddDosenModal() {
         
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
           <div>
-            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">NIDN / NIP</label>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">NUPTK / NIP</label>
             <input id="swal-dosen-nip" class="swal2-input" placeholder="19850101..." style="margin:0; width:100%; box-sizing:border-box;">
           </div>
           <div>
@@ -1867,7 +1867,7 @@ window.openEditDosenModal = async function(id) {
         
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
           <div>
-            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">NIDN / NIP</label>
+            <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">NUPTK / NIP</label>
             <input id="swal-dosen-nip" class="swal2-input" value="${escapeHtml(d.nip || '')}" style="margin:0; width:100%; box-sizing:border-box;">
           </div>
           <div>
@@ -1989,7 +1989,7 @@ window.openRiwayatPresensiDosen = async function() {
       <div style="text-align:left;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding:0.75rem; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
           <div>
-            <strong>NIDN/NIP:</strong> ${escapeHtml(AppState.currentUser.nip || '-')}<br>
+            <strong>NUPTK / NIP:</strong> ${escapeHtml(AppState.currentUser.nip || '-')}<br>
             <strong>Total Pertemuan Terlaksana:</strong> ${myPresensi.length} kali
           </div>
           <button type="button" class="btn btn-success btn-sm" id="btn-export-personal-excel">
