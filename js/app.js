@@ -26,13 +26,14 @@ const AppState = {
 // Inisialisasi saat DOM siap
 document.addEventListener("DOMContentLoaded", async () => {
   initRealtimeClock();
-  checkAuthSession();
   await loadMasterData();
+  checkAuthSession();
   setupEventListeners();
   setupRadioCards();
   renderPresensiTable();
   updateDashboardStats();
   updateConnectionBadge();
+  initSyncListeners();
 });
 
 // Realtime jam & tanggal pada banner login & form
@@ -81,6 +82,11 @@ function updateAuthUI() {
   const formDosen = document.getElementById("form-dosen");
   const lockedNotice = document.getElementById("locked-dosen-notice");
 
+  // Elemen Header Banner pada Form Absen
+  const roleLabel = document.getElementById("logged-user-role-label");
+  const btnDashboard = document.getElementById("btn-banner-dashboard");
+  const btnRiwayat = document.getElementById("btn-banner-riwayat");
+
   // Elemen Sidebar Admin
   const adminName = document.getElementById("admin-user-display-name");
   const adminRole = document.getElementById("admin-user-display-role");
@@ -96,9 +102,13 @@ function updateAuthUI() {
       if (promptBanner) promptBanner.style.display = "none";
       if (loggedBanner) {
         loggedBanner.style.display = "flex";
+        if (roleLabel) roleLabel.textContent = isSuperAdmin ? "Login sebagai Super Admin:" : "Login sebagai Bagian Akademik (BAAK):";
         document.getElementById("logged-dosen-nama").textContent = AppState.currentUser.name || (isSuperAdmin ? "Super Administrator" : "Admin Akademik");
-        document.getElementById("logged-dosen-nip").textContent = isSuperAdmin ? "Super Admin" : "Bagian Akademik (BAAK)";
+        document.getElementById("logged-dosen-nip").textContent = isSuperAdmin ? "Super Admin" : "BAAK";
       }
+      if (btnDashboard) btnDashboard.style.display = "inline-flex";
+      if (btnRiwayat) btnRiwayat.style.display = "none";
+
       if (formDosen) {
         formDosen.disabled = false;
         formDosen.classList.remove("locked-input");
@@ -127,9 +137,13 @@ function updateAuthUI() {
       if (promptBanner) promptBanner.style.display = "none";
       if (loggedBanner) {
         loggedBanner.style.display = "flex";
+        if (roleLabel) roleLabel.textContent = "Login sebagai Dosen:";
         document.getElementById("logged-dosen-nama").textContent = AppState.currentUser.nama;
         document.getElementById("logged-dosen-nip").textContent = `NIDN: ${AppState.currentUser.nip || '-'}`;
       }
+      if (btnDashboard) btnDashboard.style.display = "none";
+      if (btnRiwayat) btnRiwayat.style.display = "inline-flex";
+
       if (formDosen) {
         formDosen.value = AppState.currentUser.nama;
         formDosen.disabled = true;
@@ -140,6 +154,8 @@ function updateAuthUI() {
   } else {
     if (promptBanner) promptBanner.style.display = "flex";
     if (loggedBanner) loggedBanner.style.display = "none";
+    if (btnDashboard) btnDashboard.style.display = "none";
+    if (btnRiwayat) btnRiwayat.style.display = "none";
     if (formDosen) {
       formDosen.disabled = false;
       formDosen.classList.remove("locked-input");
@@ -182,6 +198,8 @@ async function loadMasterData() {
   populateMatkulDropdown();
   renderDosenTable();
   renderMatkulTable();
+  renderPresensiTable();
+  updateDashboardStats();
 }
 
 function populateDosenDropdown() {
@@ -202,6 +220,7 @@ function populateDosenDropdown() {
   // Filter dosen pada tabel admin
   const filterDosen = document.getElementById("filter-dosen");
   if (filterDosen) {
+    const prevFilter = filterDosen.value;
     filterDosen.innerHTML = '<option value="">Semua Dosen</option>';
     AppState.dosenList.forEach(d => {
       const opt = document.createElement("option");
@@ -209,6 +228,7 @@ function populateDosenDropdown() {
       opt.textContent = d.nama;
       filterDosen.appendChild(opt);
     });
+    if (prevFilter) filterDosen.value = prevFilter;
   }
 }
 
@@ -221,9 +241,15 @@ function populateMatkulDropdown() {
   let listToDisplay = AppState.matkulList;
   let isDosenFilter = false;
 
-  // Jika yang login adalah Dosen, filter mata kuliah yang diampu
+  // Cek dosen yang bersangkutan: baik dari login dosen, ATAU dari pilihan form-dosen jika Admin/Akademik
+  let dName = "";
   if (AppState.currentUser && AppState.currentUser.role === "dosen") {
-    const dName = AppState.currentUser.nama ? AppState.currentUser.nama.trim() : "";
+    dName = (AppState.currentUser.nama || "").trim();
+  } else {
+    dName = (document.getElementById("form-dosen")?.value || "").trim();
+  }
+
+  if (dName) {
     const filtered = AppState.matkulList.filter(m => m.dosenNama && m.dosenNama.trim().toLowerCase() === dName.toLowerCase());
     if (filtered.length > 0) {
       listToDisplay = filtered;
@@ -232,7 +258,7 @@ function populateMatkulDropdown() {
   }
 
   if (isDosenFilter) {
-    select.innerHTML = `<option value="">-- Pilih Mata Kuliah Anda (${listToDisplay.length} Mata Kuliah Terdaftar) --</option>`;
+    select.innerHTML = `<option value="">-- Pilih Mata Kuliah (${listToDisplay.length} Mata Kuliah Terdaftar) --</option>`;
   } else {
     select.innerHTML = '<option value="">-- Pilih Mata Kuliah --</option>';
   }
@@ -245,7 +271,7 @@ function populateMatkulDropdown() {
     select.appendChild(opt);
   });
 
-  // Jika dosen hanya memiliki 1 mata kuliah, otomatis pilihkan untuk kenyamanan
+  // Jika hasil filter hanya memiliki 1 mata kuliah, otomatis pilihkan untuk kenyamanan
   if (isDosenFilter && listToDisplay.length === 1) {
     select.value = listToDisplay[0].nama;
   } else if (currentVal && listToDisplay.some(m => m.nama === currentVal)) {
@@ -253,13 +279,89 @@ function populateMatkulDropdown() {
   }
 }
 
+// ================= SINKRONISASI DATA MULTI-ROLE & REALTIME =================
+function initSyncListeners() {
+  // 1. Sinkronisasi antar-tab browser via LocalStorage storage event
+  window.addEventListener("storage", async (e) => {
+    if (e.key && (e.key.startsWith("presensi_") || e.key === "presensi_sync_signal")) {
+      console.log("🔄 Mendeteksi pembaruan data dari tab lain, memperbarui antarmuka...");
+      await loadMasterData();
+    }
+  });
+
+  // 2. Sinkronisasi realtime Cloud Firestore jika Firebase aktif
+  if (window.dbService && typeof window.dbService.setupRealtimeListeners === 'function') {
+    window.dbService.setupRealtimeListeners(async (colName) => {
+      console.log(`📡 Mendeteksi update realtime Firestore pada '${colName}', memperbarui state...`);
+      await loadMasterData();
+    });
+  }
+}
+
+// Fungsi Manual Sinkronisasi Seluruh Data Antar Role (Admin, Akademik, Dosen)
+window.syncAllData = async function(showNotification = false) {
+  if (showNotification) {
+    Swal.fire({
+      title: 'Menyinkronkan Data...',
+      text: 'Mengambil data terbaru untuk Admin, Akademik, dan Dosen...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+  }
+
+  try {
+    if (window.dbService && typeof window.dbService.syncAllCollections === 'function') {
+      const data = await window.dbService.syncAllCollections();
+      AppState.dosenList = data.dosen || [];
+      AppState.matkulList = data.matkul || [];
+      AppState.presensiList = data.presensi || [];
+    } else {
+      await loadMasterData();
+    }
+
+    populateDosenDropdown();
+    populateMatkulDropdown();
+    renderDosenTable();
+    renderMatkulTable();
+    renderPresensiTable();
+    updateDashboardStats();
+    updateConnectionBadge();
+
+    if (showNotification) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Data Berhasil Disinkronkan!',
+        html: `
+          <div style="font-size:0.9rem; color:#475569; text-align:left; background:#f8fafc; padding:0.75rem 1rem; border-radius:8px; border:1px solid #e2e8f0; line-height:1.6;">
+            <div><i class="fa-solid fa-users" style="color:var(--primary); width:20px;"></i> Dosen: <strong>${AppState.dosenList.length}</strong> data</div>
+            <div><i class="fa-solid fa-book" style="color:#0284c7; width:20px;"></i> Mata Kuliah: <strong>${AppState.matkulList.length}</strong> data</div>
+            <div><i class="fa-solid fa-clipboard-check" style="color:#16a34a; width:20px;"></i> Presensi: <strong>${AppState.presensiList.length}</strong> rekaman</div>
+          </div>
+          <small style="color:#64748b; display:block; margin-top:8px;">Data pada akun Super Admin, Admin Akademik, dan Dosen telah sinkron.</small>
+        `,
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+  } catch (err) {
+    console.error("Gagal sinkron data:", err);
+    if (showNotification) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sinkronisasi Gagal',
+        text: 'Terjadi kesalahan saat menyinkronkan data. Silakan coba kembali.'
+      });
+    }
+  }
+};
+
 // Setup Event Listeners
 function setupEventListeners() {
   // Navigasi View
   document.getElementById("btn-nav-absen")?.addEventListener("click", () => showView("view-form-absen"));
   document.getElementById("btn-nav-login")?.addEventListener("click", () => {
     if (AppState.currentUser) {
-      if (AppState.currentUser.role === "admin") {
+      if (AppState.currentUser.role === "admin" || AppState.currentUser.role === "superadmin" || AppState.currentUser.role === "admin_akademik") {
         showView("view-admin-dashboard");
       } else {
         openRiwayatPresensiDosen();
@@ -294,6 +396,11 @@ function setupEventListeners() {
 
   // Form Absen Submit
   document.getElementById("form-absen-dosen")?.addEventListener("submit", handleAbsenSubmit);
+
+  // Sinkronkan pilihan mata kuliah saat Admin/Akademik memilih Dosen di form absen
+  document.getElementById("form-dosen")?.addEventListener("change", () => {
+    populateMatkulDropdown();
+  });
 
   // Filter Presensi di Admin
   document.getElementById("table-search-input")?.addEventListener("input", filterPresensiTable);
@@ -350,10 +457,14 @@ function showView(viewId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Jika kembali ke form absen, refresh dropdown
+  // Jika kembali ke form absen, refresh banner auth dan dropdown
   if (viewId === "view-form-absen") {
+    updateAuthUI();
     populateDosenDropdown();
     populateMatkulDropdown();
+  } else if (viewId === "view-admin-dashboard") {
+    updateDashboardStats();
+    renderPresensiTable();
   }
 }
 
@@ -406,6 +517,15 @@ function switchAdminTab(tabId) {
   } else if (tabId === "tab-firebase") {
     loadFirebaseConfigIntoForm();
   }
+
+  // Refresh data secara asynchronous saat membuka tab monitoring atau dashboard
+  if (tabId === "tab-monitoring" || tabId === "tab-dashboard") {
+    window.dbService.getPresensi().then(list => {
+      AppState.presensiList = list;
+      if (AppState.currentAdminTab === "tab-dashboard") updateDashboardStats();
+      if (AppState.currentAdminTab === "tab-monitoring") renderPresensiTable();
+    }).catch(() => {});
+  }
 }
 
 // ================= FORM ABSENSI DOSEN =================
@@ -432,10 +552,14 @@ async function handleAbsenSubmit(e) {
 
   // Jika Dosen login, ambil nama langsung dari akun yang terverifikasi
   let dosen = "";
+  let dosenId = null;
   if (AppState.currentUser.role === "dosen") {
     dosen = AppState.currentUser.nama;
+    dosenId = AppState.currentUser.dosenId || null;
   } else {
     dosen = document.getElementById("form-dosen").value.trim();
+    const matchedDosen = AppState.dosenList.find(d => d.nama && d.nama.trim().toLowerCase() === dosen.toLowerCase());
+    dosenId = matchedDosen ? matchedDosen.id : null;
   }
 
   const matkul = document.getElementById("form-matkul").value.trim();
@@ -523,7 +647,7 @@ async function handleAbsenSubmit(e) {
   try {
     const record = {
       dosenNama: dosen,
-      dosenId: AppState.currentUser.dosenId || null,
+      dosenId: dosenId,
       matkulNama: matkul,
       kelas: kelas,
       kelasLabel: kelasLabel,
@@ -550,6 +674,9 @@ async function handleAbsenSubmit(e) {
     });
 
     // Reset field perkuliahan (nama dosen tetap terkunci jika sedang login)
+    if (AppState.currentUser.role !== "dosen") {
+      document.getElementById("form-dosen").value = "";
+    }
     document.getElementById("form-matkul").value = "";
     document.getElementById("form-kelas").value = "";
     document.getElementById("form-pertemuan").value = "";
@@ -559,8 +686,10 @@ async function handleAbsenSubmit(e) {
     document.getElementById("form-tanggal").value = new Date().toISOString().split('T')[0];
     document.querySelector('.radio-card-label[data-type="Luring"]')?.click();
 
+    populateMatkulDropdown();
     updateDashboardStats();
     renderPresensiTable();
+    renderDosenTable();
   } catch (error) {
     console.error("Gagal simpan presensi:", error);
     Swal.fire({
@@ -662,6 +791,7 @@ async function handleAdminLogin(e) {
       nip: dosenMatch.nip
     };
     sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
+    loadMasterData();
     updateAuthUI();
     Swal.fire({
       icon: 'success',
@@ -687,6 +817,7 @@ async function handleAdminLogin(e) {
         const user = userCredential.user;
         AppState.currentUser = { email: user.email, uid: user.uid, role: "superadmin", name: user.email };
         sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
+        loadMasterData();
         updateAuthUI();
         Swal.fire({
           icon: 'success',
@@ -725,6 +856,7 @@ function loginWithSuperAdminSession() {
     canManageFirebase: true 
   };
   sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
+  loadMasterData();
   updateAuthUI();
   Swal.fire({
     icon: 'success',
@@ -746,6 +878,7 @@ function loginWithAkademikSession() {
     canManageFirebase: false 
   };
   sessionStorage.setItem("presensi_user_session", JSON.stringify(AppState.currentUser));
+  loadMasterData();
   updateAuthUI();
   Swal.fire({
     icon: 'success',
@@ -1519,8 +1652,12 @@ function renderDosenTable() {
   }
 
   tbody.innerHTML = AppState.dosenList.map((d, index) => {
-    // Hitung total jam/kehadiran dosen bersangkutan
-    const countPresensi = AppState.presensiList.filter(p => p.dosenNama === d.nama).length;
+    // Hitung total jam/kehadiran dosen bersangkutan (berdasarkan ID dan nama)
+    const countPresensi = AppState.presensiList.filter(p => {
+      const matchId = d.id && p.dosenId && p.dosenId === d.id;
+      const matchNama = p.dosenNama && p.dosenNama.trim().toLowerCase() === d.nama.trim().toLowerCase();
+      return matchId || matchNama;
+    }).length;
     return `
       <tr>
         <td style="text-align:center; font-weight:600;">${index + 1}</td>
@@ -1768,13 +1905,25 @@ window.openEditDosenModal = async function(id) {
 };
 
 // Modal Riwayat Presensi Saya Khusus Dosen yang sedang Login
-window.openRiwayatPresensiDosen = function() {
+window.openRiwayatPresensiDosen = async function() {
   if (!AppState.currentUser || AppState.currentUser.role !== "dosen") {
     Swal.fire({ icon: 'info', title: 'Perhatian', text: 'Fitur ini hanya untuk dosen yang sedang login.' });
     return;
   }
 
-  const myPresensi = AppState.presensiList.filter(p => p.dosenNama === AppState.currentUser.nama);
+  // Ambil data presensi terbaru secara langsung dari database/storage
+  try {
+    AppState.presensiList = await window.dbService.getPresensi();
+  } catch (e) {}
+
+  const currentDosenNama = (AppState.currentUser.nama || '').trim().toLowerCase();
+  const currentDosenId = AppState.currentUser.dosenId;
+
+  const myPresensi = AppState.presensiList.filter(p => {
+    const matchId = currentDosenId && p.dosenId && p.dosenId === currentDosenId;
+    const matchNama = p.dosenNama && p.dosenNama.trim().toLowerCase() === currentDosenNama;
+    return matchId || matchNama;
+  });
   
   const tableRows = myPresensi.length > 0
     ? myPresensi.map((p, idx) => `

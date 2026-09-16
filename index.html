@@ -62,11 +62,17 @@
         <div id="dosen-logged-banner" class="auth-success-banner" style="display:none;">
           <div>
             <i class="fa-solid fa-circle-check"></i>
-            Login sebagai Dosen: <strong id="logged-dosen-nama">-</strong> (<span id="logged-dosen-nip">-</span>)
+            <span id="logged-user-role-label">Login sebagai:</span> <strong id="logged-dosen-nama">-</strong> (<span id="logged-dosen-nip">-</span>)
           </div>
           <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="openRiwayatPresensiDosen()">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-banner-dashboard" onclick="showView('view-admin-dashboard')" style="display:none;">
+              <i class="fa-solid fa-gauge-high"></i> Dashboard Admin
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-banner-riwayat" onclick="openRiwayatPresensiDosen()">
               <i class="fa-solid fa-clock-rotate-left"></i> Riwayat Presensi Saya
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-banner-sync" onclick="syncAllData(true)" title="Sinkronkan Seluruh Data">
+              <i class="fa-solid fa-rotate"></i> Sinkron Data
             </button>
             <button type="button" class="btn btn-danger btn-sm" onclick="handleLogout()">
               <i class="fa-solid fa-power-off"></i> Logout
@@ -376,7 +382,10 @@
             </button>
             <span style="font-weight:700; color:var(--dark); font-size:1.05rem;"><i class="fa-solid fa-shield-halved" style="color:var(--primary); margin-right:0.35rem;"></i>Panel Admin Presensi</span>
           </div>
-          <div style="display:flex; gap:0.5rem; align-items:center;">
+          <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-sync" onclick="syncAllData(true)" title="Sinkronkan Seluruh Data">
+              <i class="fa-solid fa-rotate"></i> Sinkron Data
+            </button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="showView('view-form-absen')" title="Lihat Formulir Presensi">
               <i class="fa-solid fa-file-pen"></i> Form Absen
             </button>
@@ -821,7 +830,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="js/firebase-config.js?v=20260916f"></script>
-  <script src="js/app.js?v=20260916f"></script>
+  <script src="js/firebase-config.js?v=20260916g"></script>
+  <script src="js/app.js?v=20260916g"></script>
 </body>
 </html>
