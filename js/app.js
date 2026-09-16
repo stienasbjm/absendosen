@@ -583,15 +583,30 @@ function handleAdminLogin(e) {
   }
 
   const cleanInput = inputUser.toLowerCase();
+  const cleanPass = pass.trim();
 
-  // 1. Cek apakah ini akun Super Admin (admin@kampus.ac.id / admin123 atau superadmin / admin123)
-  if ((cleanInput === "admin@kampus.ac.id" || cleanInput === "admin" || cleanInput === "superadmin") && pass === "admin123") {
+  // 1. Cek apakah ini akun Super Admin
+  const isSuperUser = (
+    cleanInput === "admin@kampus.ac.id" ||
+    cleanInput === "admin" ||
+    cleanInput === "superadmin"
+  );
+  if (isSuperUser && (cleanPass === "admin123" || cleanPass === "kajimanuntung126")) {
     loginWithSuperAdminSession();
     return;
   }
 
-  // 2. Cek apakah ini akun Admin Khusus Bagian Akademik (akademik@kampus.ac.id / akademik123 atau akademik / akademik123)
-  if ((cleanInput === "akademik@kampus.ac.id" || cleanInput === "akademik" || cleanInput === "baak") && pass === "akademik123") {
+  // 2. Cek apakah ini akun Admin Khusus Bagian Akademik
+  const isAkademikUser = (
+    cleanInput === "akademik@kampus.ac.id" ||
+    cleanInput === "akademik" ||
+    cleanInput === "baak" ||
+    cleanInput === "adminakademik" ||
+    cleanInput === "admin.akademik" ||
+    cleanInput === "admin akademik" ||
+    cleanInput === "stienasbjm"
+  );
+  if (isAkademikUser && (cleanPass === "akademik123" || cleanPass === "admin123" || cleanPass === "kajimanuntung126")) {
     loginWithAkademikSession();
     return;
   }
@@ -599,7 +614,7 @@ function handleAdminLogin(e) {
   // 3. Cek apakah ini akun User Dosen di Master Data Dosen
   const dosenMatch = AppState.dosenList.find(d => 
     (d.username?.toLowerCase() === cleanInput || d.email?.toLowerCase() === cleanInput) &&
-    (d.password === pass)
+    (d.password === cleanPass || d.password === pass)
   );
 
   if (dosenMatch) {
