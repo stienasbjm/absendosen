@@ -385,6 +385,20 @@ function setupEventListeners() {
     document.querySelector(".admin-sidebar")?.classList.toggle("open");
   });
 
+  // Close the mobile sidebar when clicking outside it.
+  document.addEventListener("click", (event) => {
+    if (window.innerWidth > 992) return;
+
+    const sidebar = document.querySelector(".admin-sidebar");
+    const toggle = document.getElementById("btn-sidebar-toggle");
+    if (!sidebar?.classList.contains("open")) return;
+
+    const target = event.target;
+    if (target instanceof Node && !sidebar.contains(target) && !toggle?.contains(target)) {
+      sidebar.classList.remove("open");
+    }
+  });
+
   // Sidebar Links
   document.querySelectorAll(".sidebar-link[data-tab]").forEach(link => {
     link.addEventListener("click", (e) => {
@@ -401,7 +415,6 @@ function setupEventListeners() {
   // Login Form
   document.getElementById("form-login")?.addEventListener("submit", handleAdminLogin);
   document.getElementById("btn-logout")?.addEventListener("click", handleLogout);
-  document.getElementById("btn-sidebar-logout")?.addEventListener("click", handleLogout);
 
   // Form Absen Submit
   document.getElementById("form-absen-dosen")?.addEventListener("submit", handleAbsenSubmit);
