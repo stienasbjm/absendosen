@@ -380,22 +380,34 @@ function setupEventListeners() {
     }
   });
 
-  // Mobile sidebar toggle
-  document.getElementById("btn-sidebar-toggle")?.addEventListener("click", () => {
-    document.querySelector(".admin-sidebar")?.classList.toggle("open");
+  // Mobile sidebar toggle & backdrop
+  const adminSidebarEl = document.querySelector(".admin-sidebar");
+  const sidebarBackdropEl = document.getElementById("sidebar-backdrop");
+  const sidebarToggleBtn = document.getElementById("btn-sidebar-toggle");
+
+  const closeMobileSidebar = () => {
+    adminSidebarEl?.classList.remove("open");
+    sidebarBackdropEl?.classList.remove("active");
+  };
+
+  sidebarToggleBtn?.addEventListener("click", () => {
+    const isOpen = adminSidebarEl?.classList.toggle("open");
+    if (isOpen) {
+      sidebarBackdropEl?.classList.add("active");
+    } else {
+      sidebarBackdropEl?.classList.remove("active");
+    }
   });
+
+  sidebarBackdropEl?.addEventListener("click", closeMobileSidebar);
 
   // Close the mobile sidebar when clicking outside it.
   document.addEventListener("click", (event) => {
     if (window.innerWidth > 992) return;
-
-    const sidebar = document.querySelector(".admin-sidebar");
-    const toggle = document.getElementById("btn-sidebar-toggle");
-    if (!sidebar?.classList.contains("open")) return;
-
+    if (!adminSidebarEl?.classList.contains("open")) return;
     const target = event.target;
-    if (target instanceof Node && !sidebar.contains(target) && !toggle?.contains(target)) {
-      sidebar.classList.remove("open");
+    if (target instanceof Node && !adminSidebarEl.contains(target) && !sidebarToggleBtn?.contains(target)) {
+      closeMobileSidebar();
     }
   });
 
@@ -407,9 +419,29 @@ function setupEventListeners() {
       switchAdminTab(tabId);
       // Close sidebar on mobile after click
       if (window.innerWidth <= 992) {
-        document.querySelector(".admin-sidebar")?.classList.remove("open");
+        closeMobileSidebar();
       }
     });
+  });
+
+  // Toggle Password Visibility pada Login
+  document.getElementById("btn-toggle-password")?.addEventListener("click", function() {
+    const passInput = document.getElementById("login-password");
+    const icon = this.querySelector("i");
+    if (!passInput) return;
+    if (passInput.type === "password") {
+      passInput.type = "text";
+      if (icon) {
+        icon.className = "fa-regular fa-eye-slash";
+      }
+      this.title = "Sembunyikan kata sandi";
+    } else {
+      passInput.type = "password";
+      if (icon) {
+        icon.className = "fa-regular fa-eye";
+      }
+      this.title = "Tampilkan kata sandi";
+    }
   });
 
   // Login Form

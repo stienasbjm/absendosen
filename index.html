@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e3a8a">
   <title>Sistem Presensi Mengajar Dosen</title>
   
   <!-- Google Fonts: Plus Jakarta Sans -->
@@ -17,7 +18,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   
   <!-- Custom Style -->
-  <link rel="stylesheet" href="css/style.css?v=20261012">
+  <link rel="stylesheet" href="css/style.css?v=20261012c">
 </head>
 <body>
 
@@ -84,6 +85,12 @@
         <form id="form-absen-dosen" class="form-body">
           <div class="form-grid">
             
+            <!-- SEKSI 1: DATA PENGAJAR & PERKULIAHAN -->
+            <div class="form-section-divider col-span-2">
+              <i class="fa-solid fa-graduation-cap"></i>
+              <span>1. Informasi Pengajar &amp; Kelas Perkuliahan</span>
+            </div>
+
             <!-- Nama Dosen -->
             <div class="form-group">
               <label class="form-label" for="form-dosen">
@@ -114,7 +121,7 @@
             </div>
 
             <!-- Pilih Kelas (Sesuai Permintaan Spesifik) -->
-            <div class="form-group">
+            <div class="form-group col-span-2">
               <label class="form-label" for="form-kelas">
                 <i class="fa-solid fa-users-rectangle"></i> Pilih Kelas <span class="required">*</span>
               </label>
@@ -131,6 +138,12 @@
                   <option value="NR A/M">NR A/M = Non Reguler Akuntansi Manajemen</option>
                 </select>
               </div>
+            </div>
+
+            <!-- SEKSI 2: JADWAL & WAKTU SESI -->
+            <div class="form-section-divider col-span-2">
+              <i class="fa-solid fa-calendar-days"></i>
+              <span>2. Jadwal &amp; Waktu Perkuliahan</span>
             </div>
 
             <!-- Tanggal Perkuliahan -->
@@ -185,6 +198,12 @@
               </div>
             </div>
 
+            <!-- SEKSI 3: MODA & KEHADIRAN -->
+            <div class="form-section-divider col-span-2">
+              <i class="fa-solid fa-tower-broadcast"></i>
+              <span>3. Kehadiran &amp; Moda Perkuliahan</span>
+            </div>
+
             <!-- Jumlah Mahasiswa -->
             <div class="form-group">
               <label class="form-label" for="form-jumlah-mhs">
@@ -215,10 +234,16 @@
                   <div class="radio-indicator"></div>
                   <div class="radio-content">
                     <span class="radio-title"><i class="fa-solid fa-video"></i> Daring</span>
-                    <span class="radio-desc">Online / Google Meet / Zoom</span>
+                    <span class="radio-desc">Online / Meet / Zoom</span>
                   </div>
                 </label>
               </div>
+            </div>
+
+            <!-- SEKSI 4: BERITA ACARA -->
+            <div class="form-section-divider col-span-2">
+              <i class="fa-solid fa-book-open-reader"></i>
+              <span>4. Berita Acara &amp; Pokok Bahasan Materi</span>
             </div>
 
             <!-- Materi Perkuliahan -->
@@ -264,33 +289,50 @@
   <section id="view-login" class="view-section active">
     <div class="login-container">
       <div class="login-card">
-        <div class="login-header" style="padding: 1.5rem 1.5rem 1.25rem 1.5rem;">
-          <img src="img/logo-stienas.png" alt="Logo STIE Nasional Banjarmasin" style="width:80px; height:auto; display:block; margin:0 auto 0.65rem auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));">
-          <h1 style="font-size:1.25rem; font-weight:800; color:var(--dark); letter-spacing:0.02em; margin:0; text-transform:uppercase;">STIE NASIONAL BANJARMASIN</h1>
-          <div style="font-size:0.85rem; color:var(--primary); font-weight:700; margin-top:0.25rem;">Sistem Informasi Presensi Mengajar Dosen</div>
-          <div style="font-size:0.78rem; color:var(--text-muted); font-weight:500; margin-top:0.35rem;" id="login-current-time">Memuat waktu...</div>
+        <div class="login-header">
+          <img src="img/logo-stienas.png" alt="Logo STIE Nasional Banjarmasin" class="login-header-logo">
+          <span class="login-header-tag"><i class="fa-solid fa-building-columns"></i> Portal Akademik Terpadu</span>
+          <h1>STIE NASIONAL BANJARMASIN</h1>
+          <div class="login-subtitle">Sistem Presensi Mengajar Dosen</div>
+          <div class="login-clock-badge">
+            <span class="status-dot"></span>
+            <span id="login-current-time">Memuat waktu...</span>
+          </div>
         </div>
 
         <form id="form-login" class="login-body">
           <div class="form-group">
-            <label class="form-label" for="login-email">Username atau Email</label>
+            <label class="form-label" for="login-email">
+              <i class="fa-regular fa-user"></i> Username atau Email
+            </label>
             <div class="input-icon-wrapper">
               <i class="fa-regular fa-user"></i>
-              <input type="text" id="login-email" class="form-control" placeholder="Masukkan Username atau Email" required>
+              <input type="text" id="login-email" class="form-control" placeholder="Masukkan Username atau Email" required autocomplete="username">
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="login-password">Kata Sandi (Password)</label>
+            <label class="form-label" for="login-password">
+              <i class="fa-solid fa-key"></i> Kata Sandi (Password)
+            </label>
             <div class="input-icon-wrapper">
               <i class="fa-solid fa-key"></i>
-              <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+              <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" id="btn-toggle-password" class="btn-toggle-password" title="Tampilkan kata sandi">
+                <i class="fa-regular fa-eye"></i>
+              </button>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.25rem;">
             <i class="fa-solid fa-right-to-bracket"></i> Masuk Sekarang
           </button>
+
+          <div class="login-feature-chips">
+            <span class="login-chip-item"><i class="fa-solid fa-shield-halved"></i> Terenkripsi Aman</span>
+            <span>&bull;</span>
+            <span class="login-chip-item"><i class="fa-solid fa-cloud"></i> Cloud Realtime</span>
+          </div>
         </form>
       </div>
 
@@ -358,20 +400,23 @@
         </nav>
 
         <div class="sidebar-footer">
-          <div style="font-size:0.7rem; color:#64748b; text-align:center; margin-top:0.65rem; line-height:1.4;">
+          <div style="font-size:0.7rem; color:#64748b; text-align:center; line-height:1.4;">
             &copy; 2026 STIE Nas Banjarmasin<br>
             Dibuat oleh <strong style="color:#94a3b8;">Lab Terpadu</strong>
           </div>
         </div>
       </aside>
 
+      <!-- Mobile Sidebar Backdrop Overlay -->
+      <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
       <!-- Admin Main Content Area -->
       <main class="admin-content">
 
         <!-- Admin Quick Bar: Mobile toggle, view form, logout -->
-        <div class="admin-topbar-nav" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.15rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);">
+        <div class="admin-topbar-nav">
           <div style="display:flex; align-items:center; gap:0.75rem;">
-            <button id="btn-sidebar-toggle" class="mobile-sidebar-toggle btn btn-secondary btn-sm" type="button" title="Menu Sidebar">
+            <button id="btn-sidebar-toggle" class="mobile-sidebar-toggle" type="button" title="Menu Sidebar">
               <i class="fa-solid fa-bars"></i>
             </button>
             <span style="font-weight:700; color:var(--dark); font-size:1.05rem;"><i class="fa-solid fa-shield-halved" style="color:var(--primary); margin-right:0.35rem;"></i>Panel Admin Presensi</span>
@@ -857,7 +902,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="js/firebase-config.js?v=20260917b"></script>
-  <script src="js/app.js?v=20260917b"></script>
+  <script src="js/firebase-config.js?v=20261012-fresh"></script>
+  <script src="js/app.js?v=20261012-fresh"></script>
 </body>
 </html>
