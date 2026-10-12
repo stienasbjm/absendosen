@@ -26,6 +26,7 @@ const AppState = {
 
 // Inisialisasi saat DOM siap
 document.addEventListener("DOMContentLoaded", async () => {
+  initThemeSystem();
   initRealtimeClock();
   await loadMasterData();
   checkAuthSession();
@@ -37,7 +38,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   initSyncListeners();
 });
 
-// Realtime jam & tanggal pada banner login & form
+// Sistem Mode Gelap & Terang (Dark Mode / Light Mode)
+function initThemeSystem() {
+  const savedTheme = localStorage.getItem("absen_theme") || 
+    (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  setTheme(savedTheme);
+
+  document.querySelectorAll(".theme-toggle-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      const next = current === "dark" ? "light" : "dark";
+      setTheme(next);
+    });
+  });
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("absen_theme", theme);
+  const isDark = theme === "dark";
+  document.querySelectorAll(".theme-toggle-btn i").forEach(icon => {
+    icon.className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
+  });
+}
+
+// Realtime jam & tanggal pada banner login, form & dashboard
 function initRealtimeClock() {
   const updateTime = () => {
     const now = new Date();
@@ -47,6 +72,11 @@ function initRealtimeClock() {
     if (loginClock) loginClock.textContent = str;
     const formClock = document.getElementById("form-current-time");
     if (formClock) formClock.textContent = str;
+    const dashDate = document.getElementById("dash-date-display");
+    if (dashDate) {
+      const dateOnly = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      dashDate.textContent = dateOnly;
+    }
   };
   updateTime();
   setInterval(updateTime, 1000 * 30);
@@ -126,6 +156,11 @@ function updateAuthUI() {
       }
       if (adminAvatar) {
         adminAvatar.innerHTML = isSuperAdmin ? `<i class="fa-solid fa-shield-halved"></i>` : `<i class="fa-solid fa-user-pen"></i>`;
+      }
+
+      const heroUsername = document.getElementById("dash-hero-username");
+      if (heroUsername) {
+        heroUsername.textContent = AppState.currentUser.name || (isSuperAdmin ? "Super Admin" : "Admin Akademik");
       }
 
       // KONTROL AKSES: Sembunyikan Kelola User & Konfigurasi Firebase untuk Admin Akademik
