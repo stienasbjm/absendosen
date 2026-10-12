@@ -446,7 +446,7 @@ function setupEventListeners() {
     }
   });
 
-  // Sidebar Links
+  // Sidebar Links (tab switching)
   document.querySelectorAll(".sidebar-link[data-tab]").forEach(link => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
@@ -457,6 +457,15 @@ function setupEventListeners() {
         closeMobileSidebar();
       }
     });
+  });
+
+  // Sidebar Link khusus: Input Presensi Dosen (navigasi ke form absen, bukan tab)
+  document.getElementById("sidebar-link-form-absen")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    showView("view-form-absen");
+    if (window.innerWidth <= 992) {
+      closeMobileSidebar();
+    }
   });
 
   // Toggle Password Visibility pada Login

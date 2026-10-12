@@ -1235,6 +1235,16 @@ textarea.form-control {
   transition: background-color var(--transition);
 }
 
+/* Admin Tab Panels: hanya tampilkan tab yang aktif */
+.admin-tab {
+  display: none;
+}
+
+.admin-tab.active {
+  display: block;
+  animation: fadeInView 0.3s ease forwards;
+}
+
 /* Admin Topbar */
 .admin-topbar-nav {
   display: flex;

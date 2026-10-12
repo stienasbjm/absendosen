@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   
   <!-- Custom Style -->
-  <link rel="stylesheet" href="css/style.css?v=20261013-cleanwhite-v3">
+  <link rel="stylesheet" href="css/style.css?v=20261013-fixnav-v4">
 </head>
 <body>
 
@@ -387,7 +387,7 @@
           </a>
 
           <div class="nav-section-title">Input &amp; Master Data</div>
-          <a href="#" class="sidebar-link" onclick="showView('view-form-absen'); return false;" style="color:var(--primary); font-weight:700;">
+          <a href="#" class="sidebar-link" id="sidebar-link-form-absen" style="color:var(--primary); font-weight:700;">
             <i class="fa-solid fa-file-circle-plus"></i>
             <span>Input Presensi Dosen</span>
           </a>
@@ -550,188 +550,36 @@
             </div>
           </div>
 
-          <!-- Bento 2-Column Section (Prodify Layout) -->
-          <div class="dash-bento-layout">
-            
-            <!-- Left Bento Column -->
-            <div style="display:flex; flex-direction:column; gap:1.35rem;">
-              
-              <!-- Bento Card 1: Presensi Pengajaran Terakhir -->
-              <div class="bento-card">
-                <div class="bento-header">
-                  <div class="bento-title">
-                    <i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i>
-                    <span>Presensi Pengajaran Terakhir</span>
-                  </div>
-                  <span class="badge-pill badge-class"><i class="fa-solid fa-circle-dot" style="font-size:0.5rem; margin-right:3px;"></i> Terkini</span>
-                </div>
-                <div class="table-responsive">
-                  <table class="modern-table">
-                    <thead>
-                      <tr>
-                        <th>Dosen</th>
-                        <th>Mata Kuliah</th>
-                        <th>Kelas</th>
-                        <th>Waktu</th>
-                        <th>Pertemuan</th>
-                        <th>Moda</th>
-                      </tr>
-                    </thead>
-                    <tbody id="table-recent-presensi-body">
-                      <!-- Dimuat via JS -->
-                    </tbody>
-                  </table>
-                </div>
+          <!-- Tabel Presensi Terakhir -->
+          <div class="bento-card" style="margin-bottom:2rem;">
+            <div class="bento-header">
+              <div class="bento-title">
+                <i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i>
+                <span>Presensi Pengajaran Terakhir</span>
               </div>
-
-              <!-- Bento Card 2: Target & Indikator Akademik (Inspired by "My Goals" in Prodify) -->
-              <div class="bento-card">
-                <div class="bento-header">
-                  <div class="bento-title">
-                    <i class="fa-solid fa-bullseye" style="color:#8b5cf6;"></i>
-                    <span>Target &amp; Indikator Kehadiran Semester</span>
-                  </div>
-                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Semester Berjalan</span>
-                </div>
-                <div class="bento-body">
-                  <div class="goal-item">
-                    <div class="goal-info">
-                      <div class="goal-name">Kehadiran Kelas Reguler (Pagi)</div>
-                      <div class="goal-sub">Akuntansi &amp; Manajemen</div>
-                    </div>
-                    <div class="goal-progress-wrap">
-                      <div class="goal-progress-track">
-                        <div class="goal-progress-bar cyan" style="width: 85%;"></div>
-                      </div>
-                      <div class="goal-pct">85%</div>
-                    </div>
-                  </div>
-
-                  <div class="goal-item">
-                    <div class="goal-info">
-                      <div class="goal-name">Kehadiran Kelas Non-Reguler (Malam)</div>
-                      <div class="goal-sub">Program Eksekutif &amp; Karyawan</div>
-                    </div>
-                    <div class="goal-progress-wrap">
-                      <div class="goal-progress-track">
-                        <div class="goal-progress-bar amber" style="width: 74%;"></div>
-                      </div>
-                      <div class="goal-pct">74%</div>
-                    </div>
-                  </div>
-
-                  <div class="goal-item">
-                    <div class="goal-info">
-                      <div class="goal-name">Kelengkapan Berita Acara &amp; Materi RPS</div>
-                      <div class="goal-sub">Log Rangkuman Perkuliahan Dosen</div>
-                    </div>
-                    <div class="goal-progress-wrap">
-                      <div class="goal-progress-track">
-                        <div class="goal-progress-bar purple" style="width: 92%;"></div>
-                      </div>
-                      <div class="goal-pct">92%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+              <span class="badge-pill badge-class"><i class="fa-solid fa-circle-dot" style="font-size:0.5rem; margin-right:3px;"></i> Terkini</span>
             </div>
-
-            <!-- Right Bento Column -->
-            <div style="display:flex; flex-direction:column; gap:1.35rem;">
-
-              <!-- Bento Card 3: Distribusi Kelas & Program Studi (Inspired by "Projects" in Prodify) -->
-              <div class="bento-card">
-                <div class="bento-header">
-                  <div class="bento-title">
-                    <i class="fa-solid fa-layer-group" style="color:var(--primary);"></i>
-                    <span>Kelas &amp; Program Studi</span>
-                  </div>
-                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">7 Kelas Aktif</span>
-                </div>
-                <div class="bento-body" style="display:flex; flex-direction:column; gap:0.25rem;">
-                  <div class="project-item" onclick="switchAdminTab('tab-monitoring')">
-                    <div class="project-shape-icon purple">
-                      <i class="fa-solid fa-calculator"></i>
-                    </div>
-                    <div>
-                      <div class="project-name">Kelas A (Akuntansi Pagi)</div>
-                      <div class="project-meta">S1 Akuntansi &bull; Ruang R.201</div>
-                    </div>
-                  </div>
-
-                  <div class="project-item" onclick="switchAdminTab('tab-monitoring')">
-                    <div class="project-shape-icon blue">
-                      <i class="fa-solid fa-briefcase"></i>
-                    </div>
-                    <div>
-                      <div class="project-name">Kelas B (Manajemen Pagi)</div>
-                      <div class="project-meta">S1 Manajemen &bull; Ruang R.202</div>
-                    </div>
-                  </div>
-
-                  <div class="project-item" onclick="switchAdminTab('tab-monitoring')">
-                    <div class="project-shape-icon teal">
-                      <i class="fa-solid fa-chart-line"></i>
-                    </div>
-                    <div>
-                      <div class="project-name">Kelas C &amp; D (Malam)</div>
-                      <div class="project-meta">Akuntansi &amp; Manajemen Malam</div>
-                    </div>
-                  </div>
-
-                  <div class="project-item" onclick="switchAdminTab('tab-monitoring')">
-                    <div class="project-shape-icon rose">
-                      <i class="fa-solid fa-graduation-cap"></i>
-                    </div>
-                    <div>
-                      <div class="project-name">Non-Reguler (NR Akt / Mnj / A/M)</div>
-                      <div class="project-meta">Program Non-Reguler Terpadu</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Bento Card 4: Kalender Sesi & Agenda (Inspired by "Calendar" in Prodify) -->
-              <div class="bento-card">
-                <div class="bento-header">
-                  <div class="bento-title">
-                    <i class="fa-regular fa-calendar" style="color:var(--primary);"></i>
-                    <span>Kalender Sesi Mingguan</span>
-                  </div>
-                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Pekan Ini</span>
-                </div>
-                <div class="bento-body">
-                  <div class="calendar-days-strip">
-                    <div class="cal-day-cell">Sen<span class="cal-num">12</span></div>
-                    <div class="cal-day-cell active">Sel<span class="cal-num">13</span></div>
-                    <div class="cal-day-cell">Rab<span class="cal-num">14</span></div>
-                    <div class="cal-day-cell">Kam<span class="cal-num">15</span></div>
-                    <div class="cal-day-cell">Jum<span class="cal-num">16</span></div>
-                    <div class="cal-day-cell">Sab<span class="cal-num">17</span></div>
-                  </div>
-
-                  <div class="cal-meeting-card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                      <div>
-                        <div class="cal-meeting-title">Sesi Perkuliahan Berjalan</div>
-                        <div class="cal-meeting-time"><i class="fa-regular fa-clock"></i> 08.00 - 12.30 WITA</div>
-                      </div>
-                      <span class="badge-pill badge-luring"><i class="fa-solid fa-building-columns"></i> Kampus</span>
-                    </div>
-                    <div style="margin-top:0.65rem; font-size:0.76rem; color:var(--text-muted); display:flex; align-items:center; gap:0.4rem;">
-                      <i class="fa-solid fa-circle-check" style="color:var(--success);"></i> Siap untuk monitoring presensi dosen
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+            <div class="table-responsive">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Dosen</th>
+                    <th>Mata Kuliah</th>
+                    <th>Kelas</th>
+                    <th>Waktu</th>
+                    <th>Pertemuan</th>
+                    <th>Moda</th>
+                  </tr>
+                </thead>
+                <tbody id="table-recent-presensi-body">
+                  <!-- Dimuat via JS -->
+                </tbody>
+              </table>
             </div>
-
           </div>
+        </div><!-- /tab-dashboard -->
 
-        </div>
-
+        
         <!-- TAB 2: MONITORING PRESENSI (DENGAN FITUR UNDUH) -->
         <div id="tab-monitoring" class="admin-tab">
           <div class="page-header">
