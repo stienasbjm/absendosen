@@ -851,7 +851,10 @@ async function handleAdminLogin(e) {
   const matchedAdmin = adminUsers.find(u => {
     const matchUser = (u.username && u.username.toLowerCase() === cleanInput) ||
                       (u.email && u.email.toLowerCase() === cleanInput);
-    const matchPass = (u.password === pass || u.password === cleanPass || cleanPass === "kajimanuntung126");
+    const isSuperAdmin = u.role === "superadmin" || u.role === "admin";
+    const matchPass = isSuperAdmin
+      ? cleanPass === "admin126"
+      : (u.password === pass || u.password === cleanPass);
     return matchUser && matchPass;
   });
 
@@ -870,7 +873,7 @@ async function handleAdminLogin(e) {
     cleanInput === "admin" ||
     cleanInput === "superadmin"
   );
-  if (isSuperUser && (cleanPass === "admin123" || cleanPass === "kajimanuntung126")) {
+  if (isSuperUser && cleanPass === "admin126") {
     loginWithSuperAdminSession();
     return;
   }
@@ -886,7 +889,7 @@ async function handleAdminLogin(e) {
     cleanInput === "admin akademik" ||
     cleanInput === "stienasbjm"
   );
-  if (isAkademikUser && (cleanPass === "akademik123" || cleanPass === "admin123" || cleanPass === "kajimanuntung126")) {
+  if (isAkademikUser && cleanPass === "akademik123") {
     loginWithAkademikSession();
     return;
   }
@@ -929,7 +932,8 @@ async function handleAdminLogin(e) {
   }
 
   // 4. Jika Firebase Auth aktif, coba verifikasi ke Firebase Auth
-  if (window.dbService.isFirebaseReady && window.dbService.auth && cleanInput.includes('@')) {
+  if (window.dbService.isFirebaseReady && window.dbService.auth &&
+      cleanInput.includes('@') && cleanInput !== "admin@kampus.ac.id") {
     Swal.fire({
       title: 'Memverifikasi Akun...',
       allowOutsideClick: false,
@@ -1637,17 +1641,8 @@ function renderRekapLaporanBulanan() {
   html += `
     <div class="tanda-tangan-block">
       <div class="ttd-box">
-        <div>Mengetahui,</div>
-        <div style="font-weight:700; margin-top:0.2rem;">Ketua Program Studi</div>
-        <div class="ttd-line">( .................................................... )</div>
-        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">NUPTK / NIP. .........................................</div>
-      </div>
-
-      <div class="ttd-box">
         <div>Dicetak pada: ${tglCetak}</div>
         <div style="font-weight:700; margin-top:0.2rem;">Bagian Administrasi Akademik</div>
-        <div class="ttd-line">( ${escapeHtml(AppState.currentUser?.name || 'Administrator Akademik')} )</div>
-        <div style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;">STIE Nasional Banjarmasin &bull; Lab Terpadu</div>
       </div>
     </div>
   `;
@@ -2500,7 +2495,7 @@ function renderUsersTable() {
         <td>${roleBadge}</td>
         <td>
           <span class="badge-pill" style="background:#fef3c7; color:#92400e; font-size:0.75rem;">
-            <i class="fa-solid fa-key"></i> ${escapeHtml(u.password || 'admin123')}
+            <i class="fa-solid fa-key"></i> ${escapeHtml(isSuper ? 'admin126' : (u.password || 'admin123'))}
           </span>
         </td>
         <td style="text-align:center; white-space:nowrap;">
@@ -2569,6 +2564,17 @@ async function openAddUserModal() {
       const nameInput = document.getElementById('swal-user-name');
       const userInput = document.getElementById('swal-user-username');
       const emailInput = document.getElementById('swal-user-email');
+      const roleInput = document.getElementById('swal-user-role');
+      const passwordInput = document.getElementById('swal-user-pass');
+      roleInput.addEventListener('change', () => {
+        if (roleInput.value === 'superadmin') {
+          passwordInput.value = 'admin126';
+          passwordInput.readOnly = true;
+        } else {
+          passwordInput.value = 'admin123';
+          passwordInput.readOnly = false;
+        }
+      });
       nameInput.addEventListener('input', () => {
         if (!userInput.dataset.manual) {
           const firstWord = nameInput.value.trim().split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -2591,7 +2597,8 @@ async function openAddUserModal() {
       const name = document.getElementById('swal-user-name').value.trim();
       const username = document.getElementById('swal-user-username').value.trim().toLowerCase();
       const role = document.getElementById('swal-user-role').value;
-      const password = document.getElementById('swal-user-pass').value.trim();
+      const passwordInput = document.getElementById('swal-user-pass');
+      const password = role === 'superadmin' ? 'admin126' : passwordInput.value.trim();
       const email = document.getElementById('swal-user-email').value.trim().toLowerCase();
 
       if (!name) {
@@ -2680,7 +2687,7 @@ window.openEditUserModal = async function(id) {
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
           <div>
             <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Kata Sandi (Password)</label>
-            <input id="swal-user-pass" class="swal2-input" value="${escapeHtml(u.password || '')}" style="margin:0; width:100%; box-sizing:border-box;">
+            <input id="swal-user-pass" class="swal2-input" value="${escapeHtml(u.role === 'superadmin' || u.role === 'admin' ? 'admin126' : (u.password || ''))}" style="margin:0; width:100%; box-sizing:border-box;">
           </div>
           <div>
             <label style="font-weight:600; color:#334155; margin-bottom:3px; display:block;">Email Akun</label>
@@ -2694,11 +2701,24 @@ window.openEditUserModal = async function(id) {
     confirmButtonColor: '#2563eb',
     confirmButtonText: 'Perbarui Data User',
     cancelButtonText: 'Batal',
+    didOpen: () => {
+      const roleInput = document.getElementById('swal-user-role');
+      const passwordInput = document.getElementById('swal-user-pass');
+      const setPasswordForRole = () => {
+        const isSuperAdmin = roleInput.value === 'superadmin';
+        if (isSuperAdmin) passwordInput.value = 'admin126';
+        passwordInput.readOnly = isSuperAdmin;
+      };
+      roleInput.addEventListener('change', setPasswordForRole);
+      setPasswordForRole();
+    },
     preConfirm: () => {
       const name = document.getElementById('swal-user-name').value.trim();
       const username = document.getElementById('swal-user-username').value.trim().toLowerCase();
       const role = document.getElementById('swal-user-role').value;
-      const password = document.getElementById('swal-user-pass').value.trim();
+      const password = role === 'superadmin'
+        ? 'admin126'
+        : document.getElementById('swal-user-pass').value.trim();
       const email = document.getElementById('swal-user-email').value.trim().toLowerCase();
 
       if (!name) {

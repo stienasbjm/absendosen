@@ -1153,6 +1153,8 @@ textarea.form-control {
 .sidebar-prodify-card {
   margin: 0.75rem;
   padding: 1.15rem 1rem;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a855f7 100%);
   color: #ffffff;
@@ -1174,25 +1176,38 @@ textarea.form-control {
 }
 
 .sidebar-prodify-icon {
+  position: relative;
+  z-index: 1;
   font-size: 1.35rem;
   margin-bottom: 0.4rem;
   color: #fef08a;
 }
 
 .sidebar-prodify-title {
+  position: relative;
+  z-index: 1;
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: clamp(0.9rem, 4vw, 0.98rem);
+  line-height: 1.35;
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .sidebar-prodify-desc {
+  position: relative;
+  z-index: 1;
   font-size: 0.74rem;
   color: rgba(255, 255, 255, 0.85);
   margin-top: 0.25rem;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .btn-sidebar-sync {
+  position: relative;
+  z-index: 1;
   margin-top: 0.75rem;
   width: 100%;
   background: #ffffff;
@@ -2006,7 +2021,7 @@ textarea.form-control {
 
 .tanda-tangan-block {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-top: 2rem;
   padding-top: 0.5rem;
 }
@@ -2015,14 +2030,6 @@ textarea.form-control {
   width: 250px;
   text-align: center;
   font-size: 0.82rem;
-}
-
-.ttd-line {
-  margin-top: 3.5rem;
-  font-weight: 700;
-  border-bottom: 1px solid #0f172a;
-  padding-bottom: 2px;
-  color: #0f172a;
 }
 
 /* --------------------------------------------------------------------------
@@ -2207,6 +2214,15 @@ textarea.form-control {
 }
 
 @media (max-width: 480px) {
+  .admin-sidebar {
+    width: min(var(--sidebar-width), calc(100vw - 1rem));
+  }
+
+  .sidebar-prodify-card {
+    margin: 0.65rem;
+    padding: 1rem 0.85rem;
+  }
+
   .form-header-title {
     font-size: 1.45rem;
   }

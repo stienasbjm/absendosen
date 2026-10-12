@@ -86,7 +86,7 @@ const INITIAL_ADMIN_USERS = [
     name: "Super Administrator",
     username: "admin",
     email: "admin@kampus.ac.id",
-    password: "admin123",
+    password: "admin126",
     role: "superadmin",
     createdAt: new Date().toISOString()
   },
@@ -628,14 +628,31 @@ class DataService {
       localData = [...INITIAL_ADMIN_USERS];
     }
 
+    localData = this.enforceAdminPasswords(localData);
+    localStorage.setItem('presensi_admin_users', JSON.stringify(localData));
+
     if (this.isFirebaseReady && this.db) {
       try {
         const snap = await this.db.collection('admin_users').get();
         if (!snap.empty) {
           const cloudData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          localStorage.setItem('presensi_admin_users', JSON.stringify(cloudData));
+          const adminPasswordUpdates = snap.docs.filter(doc => {
+            const user = doc.data();
+            return (user.role === 'superadmin' || user.role === 'admin') && user.password !== 'admin126';
+          });
+          if (adminPasswordUpdates.length > 0) {
+            try {
+              const batch = this.db.batch();
+              adminPasswordUpdates.forEach(doc => batch.update(doc.ref, { password: 'admin126' }));
+              await batch.commit();
+            } catch (err) {
+              console.warn("Gagal menyinkronkan password admin ke Firestore:", err);
+            }
+          }
+          const normalizedCloudData = this.enforceAdminPasswords(cloudData);
+          localStorage.setItem('presensi_admin_users', JSON.stringify(normalizedCloudData));
           localStorage.setItem('presensi_cloud_users_seeded', 'true');
-          return cloudData;
+          return normalizedCloudData;
         } else {
           const isCloudSeeded = localStorage.getItem('presensi_cloud_users_seeded');
           if (!isCloudSeeded && localData.length > 0) {
@@ -652,13 +669,23 @@ class DataService {
     return localData;
   }
 
+  enforceAdminPasswords(users) {
+    return users.map(user => {
+      if (user.role === 'superadmin' || user.role === 'admin') {
+        return { ...user, password: 'admin126' };
+      }
+      return user;
+    });
+  }
+
   async addUser(userData) {
+    const role = userData.role || 'admin_akademik';
     const payload = {
       name: (userData.name || '').trim(),
       username: (userData.username || '').trim().toLowerCase(),
       email: (userData.email || '').trim().toLowerCase(),
-      password: (userData.password || 'admin123').trim(),
-      role: userData.role || 'admin_akademik',
+      password: role === 'superadmin' || role === 'admin' ? 'admin126' : (userData.password || 'admin123').trim(),
+      role,
       createdAt: new Date().toISOString()
     };
 
@@ -690,9 +717,23 @@ class DataService {
   }
 
   async updateUser(id, updatedData) {
+    let currentUser;
+    try {
+      const stored = localStorage.getItem('presensi_admin_users');
+      const users = stored ? JSON.parse(stored) : [];
+      currentUser = users.find(user => user.id === id);
+    } catch (e) {
+      console.warn("Gagal membaca user sebelum update:", e);
+    }
+    const role = updatedData.role || (currentUser && currentUser.role);
+    const changes = { ...updatedData };
+    if (role === 'superadmin' || role === 'admin') {
+      changes.password = 'admin126';
+    }
+
     if (this.isFirebaseReady && this.db) {
       try {
-        await this.db.collection('admin_users').doc(id).update(updatedData);
+        await this.db.collection('admin_users').doc(id).update(changes);
       } catch (err) {
         console.warn("Firestore error saat updateUser:", err);
       }
@@ -703,7 +744,7 @@ class DataService {
       let list = stored ? JSON.parse(stored) : [];
       const idx = list.findIndex(u => u.id === id);
       if (idx !== -1) {
-        list[idx] = { ...list[idx], ...updatedData };
+        list[idx] = { ...list[idx], ...changes };
         localStorage.setItem('presensi_admin_users', JSON.stringify(list));
         this.notifyLocalSync();
       }
@@ -800,4 +841,3 @@ class DataService {
 
 // Instance tunggal service
 window.dbService = new DataService();
-
