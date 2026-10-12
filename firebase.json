@@ -5,6 +5,10 @@
       "firebase.json",
       ".firebaserc",
       "**/.*",
+      ".git/**",
+      "**/.git/**",
+      ".firebase/**",
+      ".vscode/**",
       "**/node_modules/**"
     ]
   }
