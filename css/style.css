@@ -1,20 +1,20 @@
 /* ==========================================================================
-   Web App Presensi Mengajar Dosen - Prodify Modern Dashboard Theme
-   Dukungan Penuh: Dark Mode & Light Mode (Toggle Switcher)
+   Web App Presensi Mengajar Dosen - Prodify Clean White & Dark Mode Theme
+   Aesthetic: Clean Dominan Putih (Light Mode) & Obsidian Dark (Dark Mode)
    STIE Nasional Banjarmasin
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. DESIGN TOKENS (LIGHT & DARK THEMES)
+   1. DESIGN TOKENS (LIGHT: CLEAN DOMINAN PUTIH | DARK: OBSIDIAN NAVY)
    -------------------------------------------------------------------------- */
 :root {
-  /* Brand Accents inspired by Prodify Dashboard */
+  /* Brand Accents */
   --primary: #6366f1;
   --primary-hover: #4f46e5;
   --primary-active: #4338ca;
   --primary-light: #eff1fe;
   --primary-subtle: #e0e4fc;
-  --primary-glow: rgba(99, 102, 241, 0.28);
+  --primary-glow: rgba(99, 102, 241, 0.25);
   --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --primary-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   
@@ -48,25 +48,25 @@
   --radius-xl: 26px;
   --radius-pill: 9999px;
   
-  /* Transitions */
+  /* Dimensions & Transitions */
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   --sidebar-width: 275px;
 
-  /* LIGHT THEME (PRODIFY LIGHT LOOK) */
-  --bg-page: #f2f0f9;
-  --bg-canvas: #f6f7fb;
+  /* LIGHT THEME (DOMINAN PUTIH, ULTRA CLEAN PRODIFY AESTHETIC) */
+  --bg-page: #f4f3fb;
+  --bg-canvas: #ffffff;
   --card-bg: #ffffff;
   --card-elevated: #ffffff;
-  --card-border: #eaedf5;
-  --border: #eaedf5;
+  --card-border: #eef0f6;
+  --border: #edf0f7;
   --border-focus: #6366f1;
   
   --sidebar-bg: #ffffff;
-  --sidebar-border: #ebeef5;
+  --sidebar-border: #edf0f7;
   --sidebar-text: #64748b;
-  --sidebar-text-hover: #1e293b;
+  --sidebar-text-hover: #0f172a;
   --sidebar-active-bg: #f0f1fe;
   --sidebar-active-text: #4f46e5;
   
@@ -76,36 +76,33 @@
   --text-subtle: #94a3b8;
   
   --input-bg: #ffffff;
-  --input-border: #eaedf5;
+  --input-border: #e2e8f0;
   --surface-subtle: #f8f9fd;
   --table-header-bg: #f8f9fd;
-  --table-hover-bg: #fbfbfe;
+  --table-hover-bg: #fafbff;
   --grid-line-color: rgba(99, 102, 241, 0.05);
-  --grid-dot-color: rgba(99, 102, 241, 0.08);
 
-  /* Elevation Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 2px 6px -1px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
-  --shadow-lg: 0 16px 38px -6px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-  --shadow-xl: 0 25px 55px -12px rgba(99, 102, 241, 0.12);
-  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.3);
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  --shadow-sm: 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  --shadow-lg: 0 16px 38px -6px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.02);
+  --shadow-xl: 0 24px 50px -12px rgba(99, 102, 241, 0.1);
 }
 
 /* --------------------------------------------------------------------------
-   DARK THEME PALETTE
+   DARK THEME (OBSIDIAN NAVY)
    -------------------------------------------------------------------------- */
 [data-theme="dark"] {
   --bg-page: #090d16;
-  --bg-canvas: #0c1220;
-  --card-bg: #111a2e;
-  --card-elevated: #15223c;
+  --bg-canvas: #0f172a;
+  --card-bg: #121c30;
+  --card-elevated: #16243d;
   --card-border: #1e293b;
   --border: #1e293b;
   --border-focus: #818cf8;
   
-  --sidebar-bg: #0c1220;
-  --sidebar-border: #1e293b;
+  --sidebar-bg: #0d1424;
+  --sidebar-border: #1a2538;
   --sidebar-text: #94a3b8;
   --sidebar-text-hover: #ffffff;
   --sidebar-active-bg: rgba(99, 102, 241, 0.22);
@@ -116,20 +113,18 @@
   --text-muted: #94a3b8;
   --text-subtle: #64748b;
   
-  --input-bg: #141f36;
-  --input-border: #24324f;
-  --surface-subtle: #141f36;
-  --table-header-bg: #15223c;
-  --table-hover-bg: #192644;
+  --input-bg: #152238;
+  --input-border: #24334f;
+  --surface-subtle: #152238;
+  --table-header-bg: #17243c;
+  --table-hover-bg: #1c2a46;
   --grid-line-color: rgba(255, 255, 255, 0.04);
-  --grid-dot-color: rgba(255, 255, 255, 0.06);
 
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 2px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 16px 38px -6px rgba(0, 0, 0, 0.55);
   --shadow-xl: 0 25px 55px -12px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.45);
   
   --primary-light: rgba(99, 102, 241, 0.2);
   --success-light: rgba(16, 185, 129, 0.15);
@@ -161,10 +156,6 @@ html {
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-page);
-  background-image: 
-    radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.05) 0px, transparent 55%),
-    radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.045) 0px, transparent 55%);
-  background-attachment: fixed;
   color: var(--text-main);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -184,19 +175,62 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   3. THEME TOGGLE BUTTONS (DARK/LIGHT SWITCHER)
+   3. FLOATING GLOBAL THEME SWITCHER
    -------------------------------------------------------------------------- */
+.global-theme-switcher {
+  position: fixed;
+  top: 1rem;
+  right: 1.25rem;
+  z-index: 99999;
+  display: inline-flex;
+  align-items: center;
+  background: var(--card-bg);
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+  gap: 3px;
+}
+
+.theme-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+.theme-mode-btn:hover {
+  color: var(--text-main);
+}
+
+.theme-mode-btn.active {
+  background: var(--primary-gradient);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
 .theme-toggle-btn {
   background: var(--card-bg);
   color: var(--text-main);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-xs);
@@ -207,27 +241,21 @@ body {
   background: var(--surface-subtle);
   color: var(--primary);
   transform: rotate(15deg) scale(1.05);
-  box-shadow: var(--shadow-sm);
 }
 
 .theme-toggle-login-btn {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: 1.25rem;
+  right: 1.25rem;
   z-index: 20;
 }
 
 .theme-toggle-banner {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--surface-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border);
   width: 36px;
   height: 36px;
-}
-
-.theme-toggle-banner:hover {
-  background: rgba(255, 255, 255, 0.35);
-  color: #ffffff;
 }
 
 /* --------------------------------------------------------------------------
@@ -276,7 +304,7 @@ body {
 
 .btn-secondary {
   background-color: var(--card-bg);
-  color: var(--text-secondary);
+  color: var(--text-main);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-xs);
 }
@@ -360,15 +388,15 @@ body {
 }
 
 .badge-status.connected {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.28);
 }
 
 .badge-status.local {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.12);
   color: var(--warning);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .status-dot {
@@ -402,14 +430,13 @@ body {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.85rem;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #ffffff;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--primary);
   border-radius: var(--radius-pill);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
 .badge-pill {
@@ -480,7 +507,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   7. VIEW 1: FORM ABSEN DOSEN (PANEL PRESENSI)
+   7. VIEW 1: FORM ABSEN DOSEN (PANEL PRESENSI - DOMINAN PUTIH)
    -------------------------------------------------------------------------- */
 .form-hero-card {
   background: var(--card-bg);
@@ -492,9 +519,11 @@ body {
   transition: background-color var(--transition);
 }
 
+/* Form Header Banner: Clean Dominan Putih with Blueprint Grid Pattern */
 .form-header-banner {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 75%, #6366f1 100%);
-  color: #ffffff;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
   padding: 2.25rem 2.5rem;
   position: relative;
   overflow: hidden;
@@ -503,12 +532,11 @@ body {
 .form-header-banner::before {
   content: '';
   position: absolute;
-  top: -40%;
-  right: -10%;
-  width: 480px;
-  height: 480px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 65%);
+  inset: 0;
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
   pointer-events: none;
 }
 
@@ -524,27 +552,28 @@ body {
   margin-top: 0.4rem;
   margin-bottom: 0.5rem;
   line-height: 1.2;
+  color: var(--text-main);
 }
 
 .form-header-desc {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text-muted);
   max-width: 680px;
   line-height: 1.6;
 }
 
-/* Banners */
+/* Auth Banners on Form */
 .auth-notice-banner {
   margin: 1.5rem 2.5rem 0.5rem 2.5rem;
   padding: 1.1rem 1.4rem;
-  background: var(--primary-light);
+  background: var(--surface-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1.25rem;
-  color: var(--primary);
+  color: var(--text-main);
   font-size: 0.9rem;
   box-shadow: var(--shadow-xs);
 }
@@ -556,17 +585,22 @@ body {
   line-height: 1.5;
 }
 
+.auth-notice-banner i {
+  color: var(--primary);
+  font-size: 1.15rem;
+}
+
 .auth-success-banner {
   margin: 1.5rem 2.5rem 0.5rem 2.5rem;
   padding: 1.1rem 1.4rem;
-  background: var(--success-light);
-  border: 1px solid var(--success-border);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1.25rem;
-  color: var(--success-text);
+  color: var(--text-main);
   font-size: 0.9rem;
   box-shadow: var(--shadow-xs);
   flex-wrap: wrap;
@@ -579,7 +613,12 @@ body {
   font-weight: 500;
 }
 
-/* Form Controls */
+.auth-success-banner i.fa-circle-check {
+  color: var(--success);
+  font-size: 1.15rem;
+}
+
+/* Form Body */
 .form-body {
   padding: 2rem 2.5rem 2.5rem 2.5rem;
 }
@@ -810,7 +849,7 @@ textarea.form-control {
 }
 
 /* --------------------------------------------------------------------------
-   8. VIEW 2: LOGIN PORTAL (ADMIN & DOSEN)
+   8. VIEW 2: LOGIN PORTAL (ADMIN & DOSEN - CLEAN WHITE CARD)
    -------------------------------------------------------------------------- */
 #view-login.active {
   display: flex;
@@ -843,7 +882,7 @@ textarea.form-control {
 .login-header {
   text-align: center;
   padding: 2.25rem 2rem 1.5rem 2rem;
-  background: var(--surface-subtle);
+  background: var(--card-bg);
   border-bottom: 1px solid var(--border);
   position: relative;
 }
@@ -862,7 +901,7 @@ textarea.form-control {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: var(--primary-light);
+  background: var(--surface-subtle);
   color: var(--primary);
   padding: 0.25rem 0.65rem;
   border-radius: var(--radius-pill);
@@ -895,7 +934,7 @@ textarea.form-control {
   color: var(--text-muted);
   font-weight: 600;
   margin-top: 0.5rem;
-  background: var(--card-bg);
+  background: var(--surface-subtle);
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
@@ -950,7 +989,7 @@ textarea.form-control {
 }
 
 /* --------------------------------------------------------------------------
-   9. VIEW 3: ADMIN DASHBOARD (PRODIFY LIGHT/DARK CANVAS)
+   9. VIEW 3: ADMIN DASHBOARD (PRODIFY CLEAN WHITE CANVAS)
    -------------------------------------------------------------------------- */
 .admin-layout {
   display: flex;
@@ -981,7 +1020,7 @@ textarea.form-control {
   opacity: 1;
 }
 
-/* Sidebar Prodify Style */
+/* Sidebar Prodify Style: Pure Clean White */
 .admin-sidebar {
   width: var(--sidebar-width);
   background: var(--sidebar-bg);
@@ -1183,7 +1222,7 @@ textarea.form-control {
   text-align: center;
 }
 
-/* Admin Main Content Container (Canvas) */
+/* Admin Main Content Container (Pure Clean White Canvas) */
 .admin-content {
   flex: 1;
   background: var(--bg-canvas);
@@ -1196,7 +1235,7 @@ textarea.form-control {
   transition: background-color var(--transition);
 }
 
-/* Admin Topbar Header Bar */
+/* Admin Topbar */
 .admin-topbar-nav {
   display: flex;
   justify-content: space-between;
@@ -1236,7 +1275,7 @@ textarea.form-control {
   box-shadow: var(--shadow-xs);
 }
 
-/* Blueprint Grid Lines Pattern like in Prodify image */
+/* Blueprint Grid Pattern */
 .dash-hero-grid-pattern {
   position: absolute;
   inset: 0;
@@ -1275,9 +1314,12 @@ textarea.form-control {
 }
 
 .dash-hero-subtitle {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--primary);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #06b6d4;
+  background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin-top: 0.35rem;
   margin-bottom: 1.35rem;
 }
@@ -2252,7 +2294,8 @@ textarea.form-control {
   .modal-toolbar,
   .no-print,
   .btn,
-  .admin-sidebar {
+  .admin-sidebar,
+  .global-theme-switcher {
     display: none !important;
   }
 
